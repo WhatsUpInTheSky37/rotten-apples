@@ -43,4 +43,7 @@ Far and fast hits pay more: 7 points a metre of distance, a long-shot bonus past
 
 Built with [three.js](https://threejs.org) r128. It's one HTML file with no build step.
 
+## Goals
+Each spot has a score goal you must reach to move on: 5,000 / 6,000 / 7,000 / 8,000 on Day 1, rising 8% every day (Day 7: 7,500 / 9,000 / 10,250 / 11,750). Reach the rooftop goal to head home for the showdown. Five random special cars show up each round.
+
 _Only in the game. Throwing anything at a real car can kill someone._

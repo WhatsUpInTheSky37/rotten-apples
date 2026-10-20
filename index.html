@@ -120,6 +120,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .combo{align-self:flex-start;font:700 16px/1 var(--f-num);letter-spacing:.06em;padding:5px 9px;border-radius:6px;background:rgba(0,0,0,.4);color:var(--muted);transition:transform .12s}
 .combo.hot{background:var(--gold);color:#241a00}
 .timer{display:flex;flex-direction:column;align-items:center;gap:4px}
+.goal{font:700 15px/1 var(--f-num);letter-spacing:.06em;padding:4px 9px;border-radius:6px;background:rgba(0,0,0,.42);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
+.goal.met{background:var(--leaf);color:#14200a}
 .timer .num.low{color:var(--bad);animation:pulse .6s infinite alternate}
 @keyframes pulse{to{transform:scale(1.08)}}
 .hud-btns{display:flex;gap:8px;pointer-events:auto}
@@ -185,6 +187,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     <div class="timer">
       <div id="time" class="num">60</div>
       <div class="lbl" id="spotname">Front Garden</div>
+      <div class="goal" id="goal">Goal 5,000</div>
     </div>
     <div class="hud-btns"><button class="hbtn" id="menuHudBtn" title="Menu (P)">Menu</button></div>
   </div>
@@ -569,6 +572,12 @@ const DAYS=[
  {speedMul:1.36,spawnMul:1.48,blurb:'The big leagues. Everything at full tilt.'},
 ];
 const SPOT_ORDER=[0,1,2,3];// garden, treehouse, overpass, rooftop
+// Score goal to move on from each spot. Later spots ask for more, and every day raises all four by 8%
+// (Day 1: 5,000 / 6,000 / 7,000 / 8,000; Day 7: 7,500 / 9,000 / 10,250 / 11,750) while traffic gets faster and thinner.
+const SPOT_GOALS=[5000,6000,7000,8000];
+function goalFor(d,st){return Math.round(SPOT_GOALS[st]*(1+.08*d)/250)*250;}
+const SPECIALS_PER_ROUND=5;
+let goal=SPOT_GOALS[0],goalHit=false;
 const dayKey=i=>'d'+(i+1);
 
 /* ---------------- level builders ---------------- */
@@ -1220,9 +1229,10 @@ function popup(text,wp,cls){const el=document.createElement('div');el.className=
 function updatePops(dt){const w=innerWidth,h=innerHeight;for(const p of world.pops){p.t+=dt;tmp.copy(p.wp);tmp.y+=p.t*1.4;tmp.project(camera);const x=(tmp.x*.5+.5)*w,y=(-tmp.y*.5+.5)*h;const k=p.t/p.life;const sc=k<.12?.6+k/.12*.5:1.1-Math.min(.1,(k-.12));p.el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%) scale(${sc})`;p.el.style.opacity=tmp.z>1?0:String(1-Math.max(0,(k-.7)/.3));}
   world.pops=world.pops.filter(p=>{if(p.t>=p.life){p.el.remove();return false;}return true;});}
 let banT=0;function banner(text,cls){bannerEl.textContent=text;bannerEl.className='';void bannerEl.offsetWidth;bannerEl.className='show'+(cls?' '+cls:'');}
-function addScore(n){score+=n;updateHUD(true);}
+function addScore(n){score+=n;if(state==='play'&&!goalHit&&score>=goal){goalHit=true;setTimeout(()=>{banner('GOAL! NEXT SPOT OPEN');SFX.ding(12);},700);}updateHUD(true);}
+function renderGoal(){const el=$('#goal');const met=score>=goal;el.classList.toggle('met',met);el.textContent=met?`Goal ${goal.toLocaleString()} met`:`Goal ${goal.toLocaleString()}`;}
 let hudCache={};
-function updateHUD(force){
+function updateHUD(force){renderGoal();
   const t=Math.ceil(Math.max(0,timeLeft));if(force||hudCache.score!==score){$('#score').textContent=score.toLocaleString();hudCache.score=score;}
   if(force||hudCache.t!==t){const el=$('#time');el.textContent=t;el.classList.toggle('low',t<=10&&state==='play');hudCache.t=t;}
   const mult=Math.min(4,1+.5*Math.max(0,combo-1));const ct=combo>1?`x${mult.toFixed(1).replace('.0','')} streak · ${combo}`:'No streak';if(force||hudCache.ct!==ct){const el=$('#combo');el.textContent=ct;el.classList.toggle('hot',combo>1);hudCache.ct=ct;}
@@ -1238,7 +1248,7 @@ function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
 function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
-  const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}`;
+  const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}<br>Goals ${SPOT_GOALS.map((_,k)=>goalFor(i,k).toLocaleString()).join(' / ')}`;
   b.innerHTML=`<span class="no">Day ${i+1} · garden, treehouse, overpass, rooftop, home</span><span class="nm">Day ${i+1}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${(()=>{const pr=store.get('prog',null);return pr&&pr.day===i&&pr.furthest>0&&!cleared[dayKey(i)]?`Continue at ${SPOT_NAMES[Math.min(3,pr.furthest|0)]} ${Math.min(3,pr.furthest|0)+1}/4`:(cleared[dayKey(i)]?'Cleared':'Hit the driver at home to clear');})()}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
   if(un)b.addEventListener('click',()=>startDay(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
 function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard'])$(s).hidden=s!==id;}
@@ -1249,14 +1259,16 @@ function startRound(i,step,opts){
   const spot=SPOT_ORDER[step];if(spot!==levelIdx)loadLevel(spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   $('#spotname').textContent=`Day ${i+1} · ${step+1}/4 ${LV.name}`;
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').textContent=HINTS[prefAmmo()];$('#hint').style.opacity=1;
-  specialTimes={};specialN={};for(const k in SPECIALS)specialTimes[k]=SPECIALS[k].times();
+  // A random handful of special cars each round, spaced through the minute (not every special every round).
+  specialTimes={};specialN={};const sk=Object.keys(SPECIALS).sort(()=>Math.random()-.5).slice(0,SPECIALS_PER_ROUND);const slot=46/sk.length;sk.forEach((k,j)=>{specialTimes[k]=[5+j*slot+rnd(0,slot*.7)];});
+  goal=goalFor(i,step);goalHit=false;
   look.yaw=LV.yaw;look.pitch=LV.pitch;state='play';show(null);$('#hud').hidden=false;crossEl.hidden=false;held.visible=true;setAmmo(prefAmmo());updateHUD(true);store.set('last',i);
 }
 function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;renderSpots();}
 function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 let pausedFrom='play';
-function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep+1;if(!ok){b.disabled=true;b.title='Reach it first';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
+function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep;if(!ok){b.disabled=true;b.title='Hit the goal at the spot before it first';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
 function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;const sd=pausedFrom==='showdown';$('#pauseAmmoRow').hidden=sd;$('#pauseSpotsRow').hidden=sd;if(!sd)renderPauseSpots();show('#pause');}
 function resume(){if(state!=='paused')return;state=pausedFrom;show(null);}
 function endRound(){
@@ -1264,16 +1276,19 @@ function endRound(){
   const key=dayKey(dayIdx),lastDay=dayIdx+1>=DAYS.length,lastSpot=spotStep===SPOT_ORDER.length-1;
   dayScores[spotStep]=score;saveProg();const total=dayTotal();
   let isBest=false;if(lastSpot){const prev=best[key]||0;isBest=total>prev;if(isBest){best[key]=total;store.set('best',best);}}
-  pendingShowdown=lastSpot;
+  const passed=score>=goal;
+  pendingShowdown=lastSpot&&passed;
   $('#overSpot').textContent=`Day ${dayIdx+1} · ${spotStep+1}/4 ${LV.name}`;
-  $('#overTitle').textContent=lastSpot?`Day ${dayIdx+1} done. Head home.`:(hits?'Out of time':'Not a single car');
+  $('#overTitle').textContent=!passed?(hits?'Short of the goal':'Not a single car'):(lastSpot?`Day ${dayIdx+1} done. Head home.`:'Goal met');
   $('#overScore').textContent=score.toLocaleString();$('#stHits').textContent=hits;$('#stOff').textContent=offroads;$('#stAcc').textContent=(throws?Math.round(hits/throws*100):0)+'%';$('#stCombo').textContent=bestCombo;$('#stBest').textContent=total.toLocaleString();
   $('#stTarget').textContent=(best[key]||0).toLocaleString();
   const note=$('#overNote');note.className='note';
-  if(lastSpot)note.textContent=`Day total ${total.toLocaleString()}${isBest?', a new best':''}. Uh oh: someone just pulled into your driveway, and there is an apple on their windshield.`;
+  if(!passed){note.className='note bad';note.textContent=`Goal here is ${goal.toLocaleString()}. You were ${(goal-score).toLocaleString()} short. Throw again: windshields, long shots, streaks and the special cars pay the most.`;}
+  else if(lastSpot)note.textContent=`Day total ${total.toLocaleString()}${isBest?', a new best':''}. Uh oh: someone just pulled into your driveway, and there is an apple on their windshield.`;
   else note.textContent=`Day total ${total.toLocaleString()}. ${SPOT_ORDER.length-1-spotStep} spot${SPOT_ORDER.length-1-spotStep===1?'':'s'} to go. Throw again to replay this one.`;
-  const nb=$('#nextBtn');nb.textContent=lastSpot?'Go home':'Next spot';nb.hidden=false;
-  show('#over');nb.focus();
+  const nb=$('#nextBtn');nb.textContent=lastSpot?'Go home':'Next spot';nb.hidden=!passed;
+  if(passed&&!lastSpot){furthestStep=Math.max(furthestStep,spotStep+1);saveProg();}
+  show('#over');(passed?nb:$('#againBtn')).focus();
 }
 
 /* ---------------- input ---------------- */
