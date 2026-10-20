@@ -30,6 +30,8 @@ The game is a seven-day campaign. Each day is played from one of four spots, and
 | 6 | Highway Overpass | ×1.40 | 4,200 |
 | 7 | Rooftop at Dusk | ×1.48, thinnest traffic | final |
 
+Hitting the target is only half of it. Once you have, you head home, and the driver you hit pulls into your driveway sideways with your apple still on the windshield, hops out, and comes at you shouting. You get **two apples**. Hit them before they reach your door to clear the day and unlock the next one. Miss both and you can try the showdown again. The driver looks different every day.
+
 Targets stay reachable because far and fast hits pay more: 7 points a metre of distance, a long-shot bonus past 45 m and a sniper bonus past 70 m, on top of the windshield and streak bonuses.
 
 ### The spots
