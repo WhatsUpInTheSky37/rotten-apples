@@ -18,21 +18,21 @@ A first-person browser game: hide in your front garden, watch the cars come down
 Sedans, hatchbacks, SUVs, pickups, sports cars, a third-generation Camaro, a lifted Ram, taxis on the rooftop, the odd cop, and the Cybertruck.
 
 ## Seven days
-The game is a seven-day campaign. Every day you throw from all four spots in turn: the Front Garden, the Treehouse, the Highway Overpass and the Rooftop at Dusk. Your day total is the sum of the four rounds, and you can replay a spot to raise it. Every day the cars get faster and the traffic thinner.
+The game is a seven-day campaign. Every day runs the same loop: the Front Garden, the Treehouse, the Highway Overpass, the Rooftop at Dusk, then home. Your day total is the sum of the four rounds, and you can replay a spot to raise it. Every day is a tad harder: cars a little faster, traffic a little thinner, and the driver who comes for you a little quicker.
 
-| Day | Cars | Day target (over four spots) |
-|---|---|---|
-| 1 | ×1.00 speed, full traffic | 3,000 |
-| 2 | ×1.08 | 4,500 |
-| 3 | ×1.16 | 6,000 |
-| 4 | ×1.24 | 7,500 |
-| 5 | ×1.32 | 9,000 |
-| 6 | ×1.40 | 10,500 |
-| 7 | ×1.48, thinnest traffic | 12,000 (final) |
+| Day | Cars |
+|---|---|
+| 1 | ×1.00 speed, full traffic |
+| 2 | ×1.06 speed, ×0.93 traffic |
+| 3 | ×1.12, ×0.86 |
+| 4 | ×1.18, ×0.81 |
+| 5 | ×1.24, ×0.76 |
+| 6 | ×1.30, ×0.71 |
+| 7 | ×1.36, ×0.68 |
 
-Hitting the target is only half of it. Once you have, you head home, and the driver you hit pulls into your driveway sideways with your apple still on the windshield, hops out, and comes at you shouting. You get **two apples**. Hit them before they reach your door to clear the day and unlock the next one. Miss both and you can try the showdown again. The driver looks different every day.
+After the rooftop you head home, and the driver you hit pulls into your driveway sideways with your apple still on the windshield, hops out, and comes at you shouting. You get **two apples**. Hit them before they reach your door to clear the day and unlock the next one. Miss both and you can try the showdown again. The driver looks different every day. Survive all seven showdowns and you win.
 
-Targets stay reachable because far and fast hits pay more: 7 points a metre of distance, a long-shot bonus past 45 m and a sniper bonus past 70 m, on top of the windshield and streak bonuses.
+Far and fast hits pay more: 7 points a metre of distance, a long-shot bonus past 45 m and a sniper bonus past 70 m, on top of the windshield and streak bonuses.
 
 ### The spots
 1. **Front Garden**: a quiet two-lane street
