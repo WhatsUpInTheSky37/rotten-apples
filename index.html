@@ -77,6 +77,23 @@ input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .start:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
 @keyframes beat{0%,100%{scale:1}50%{scale:1.035}}
 .trow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.top5{width:min(360px,100%);padding:10px 12px 8px;border-radius:14px;background:rgba(14,18,12,.72);border:1px solid rgba(255,255,255,.16);backdrop-filter:blur(6px);box-shadow:0 8px 24px rgba(0,0,0,.35);cursor:default}
+.top5 .t5h{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:6px}
+.top5 .t5h b{display:flex;align-items:center;gap:7px;font:700 12px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--gold)}
+.top5 .t5h svg{width:15px;height:15px;fill:var(--gold)}
+.top5 .t5more{all:unset;cursor:pointer;font:700 13px/1 var(--f-body);color:var(--ink);padding:6px 10px;border-radius:8px;background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.16)}
+.top5 .t5more:hover{background:rgba(255,255,255,.16)}
+.top5 .t5more:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.top5 ol{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:2px}
+.top5 li{display:grid;grid-template-columns:20px minmax(0,1fr) auto auto;align-items:center;gap:8px;padding:4px 4px;font:600 14px/1.15 var(--f-body);color:var(--ink)}
+.top5 li .rk{font:700 14px/1 var(--f-num);color:var(--dim);text-align:center}
+.top5 li:nth-child(1) .rk{color:var(--gold)}.top5 li:nth-child(2) .rk{color:#d6dbe0}.top5 li:nth-child(3) .rk{color:#d99a5c}
+.top5 li .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.top5 li .dy{font:700 10.5px/1 var(--f-body);letter-spacing:.08em;text-transform:uppercase;color:var(--dim)}
+.top5 li .sc{font:700 15px/1 var(--f-num);font-variant-numeric:tabular-nums;min-width:52px;text-align:right}
+.top5 li.me{background:rgba(244,196,67,.14);border-radius:6px}
+.top5 .t5empty{padding:8px 4px 6px;font:500 13px/1.35 var(--f-body);color:var(--muted)}
+@media (max-height:640px){.top5 li:nth-child(n+4){display:none}}
 .tbtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:10px;padding:13px 22px;border-radius:14px;background:rgba(22,24,20,.86);border:1px solid rgba(255,255,255,.22);box-shadow:0 4px 0 rgba(0,0,0,.45);font:700 16px/1 var(--f-body);color:#fff;min-width:150px;justify-content:center}
 .tbtn:hover{background:rgba(40,44,38,.9)}
 .tbtn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
@@ -240,6 +257,10 @@ input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 
 <div id="title" class="screen title">
   <div class="title-inner">
+    <section class="top5" id="top5" aria-labelledby="top5h">
+      <div class="t5h"><b id="top5h"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h4v3a5 5 0 0 1-4.6 5 5 5 0 0 1-3.4 2.8V18h3v3H8v-3h3v-2.2A5 5 0 0 1 7.6 13 5 5 0 0 1 3 8V5h4V3Zm0 4H5v1a3 3 0 0 0 2 2.8V7Zm10 0v3.8A3 3 0 0 0 19 8V7h-2Z"/></svg>Top scores</b><button class="t5more" id="top5More">See all &#8250;</button></div>
+      <ol id="top5List"><li class="t5empty">Loading…</li></ol>
+    </section>
     <h1 class="logo"><span class="rot">Rotten<svg class="worm" viewBox="0 0 60 60" aria-hidden="true"><path d="M8 50C8 30 26 30 26 44s18 14 18-4S52 14 50 10" fill="none" stroke="#14180f" stroke-width="13" stroke-linecap="round"/><path d="M8 50C8 30 26 30 26 44s18 14 18-4S52 14 50 10" fill="none" stroke="#f6a7a4" stroke-width="8" stroke-linecap="round"/><circle cx="50" cy="10" r="8" fill="#f9b9b6" stroke="#14180f" stroke-width="2.5"/><circle cx="47.5" cy="8.5" r="1.8" fill="#14180f"/><circle cx="53" cy="8.5" r="1.8" fill="#14180f"/></svg></span><span class="app">Apples</span></h1>
     <div class="bottom">
       <button class="start" id="startBtn">Tap to start</button>
@@ -1447,7 +1468,7 @@ function startRound(i,step,opts){
   look.yaw=LV.yaw;look.pitch=LV.pitch;state='play';show(null);$('#hud').hidden=false;crossEl.hidden=false;held.visible=true;setAmmo(prefAmmo());updateHUD(true);store.set('last',i);
 }
 function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;renderSpots();}
-function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
+function toTitle(){state='menu';show('#title');loadTop5();$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 let pausedFrom='play';
 function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep;if(!ok){b.disabled=true;b.title='Hit the goal at the spot before it first (any spot opens once the day is cleared)';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
@@ -1504,6 +1525,17 @@ async function loadBoard(){const list=$('#boardList');list.innerHTML='<li class=
       const rk=document.createElement('span');rk.className='rk';rk.textContent=i+1;const nm=document.createElement('span');nm.className='nm';nm.textContent=x.name;const sc=document.createElement('span');sc.className='sc';sc.textContent=x.score.toLocaleString();
       li.append(rk,nm,sc);list.appendChild(li);});}
   catch(e){list.innerHTML='<li class="empty">Couldn\'t reach the scoreboard. Check your connection and tap Refresh.</li>';}}
+// Title screen: best day totals from any day, one per name.
+let top5Day=1;
+async function loadTop5(){const list=$('#top5List');if(!list)return;
+  try{const r=await fetch(`${SB.url}?select=name,score,day&order=score.desc&limit=300`,{headers:{apikey:SB.key}});if(!r.ok)throw new Error('HTTP '+r.status);
+    const rows=await r.json(),seen=new Set(),top=[];for(const x of rows){const k=x.name.toLowerCase();if(seen.has(k))continue;seen.add(k);top.push(x);if(top.length>=5)break;}
+    list.innerHTML='';if(!top.length){list.innerHTML='<li class="t5empty">No scores yet. Finish all four spots of a day to be first.</li>';return;}
+    top5Day=top[0].day;
+    top.forEach((x,i)=>{const li=document.createElement('li');if(playerName&&x.name.toLowerCase()===playerName.toLowerCase())li.className='me';
+      const rk=document.createElement('span');rk.className='rk';rk.textContent=i+1;const nm=document.createElement('span');nm.className='nm';nm.textContent=x.name;
+      const dy=document.createElement('span');dy.className='dy';dy.textContent='Day '+x.day;const sc=document.createElement('span');sc.className='sc';sc.textContent=x.score.toLocaleString();li.append(rk,nm,dy,sc);list.appendChild(li);});}
+  catch(e){list.innerHTML='<li class="t5empty">Scoreboard is offline right now.</li>';}}
 function openBoard(from,day){boardFrom=from;boardDay=day||boardDay||1;$('#boardName').value=playerName;show('#board');renderBoardTabs();loadBoard();$('#boardClose').focus();}
 
 /* ---------------- input ---------------- */
@@ -1550,11 +1582,13 @@ buildAmmoPicker();
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>{setName($('#optName').value);show(optFrom);});
 $('#titleBoard').addEventListener('click',e=>{e.stopPropagation();openBoard('#title',1);});
+$('#top5').addEventListener('click',e=>e.stopPropagation());// tapping the list shouldn't start the game
+$('#top5More').addEventListener('click',e=>{e.stopPropagation();openBoard('#title',top5Day);});
 $('#menuBoard').addEventListener('click',()=>openBoard('#menu',1));
 $('#postSee').addEventListener('click',()=>openBoard('#over',pendingPost?pendingPost.day:1));
 $('#postBtn').addEventListener('click',submitPost);
 $('#postName').addEventListener('keydown',e=>{if(e.key==='Enter')submitPost();});
-$('#boardClose').addEventListener('click',()=>show(boardFrom));
+$('#boardClose').addEventListener('click',()=>{show(boardFrom);if(boardFrom==='#title')loadTop5();});
 $('#boardRefresh').addEventListener('click',loadBoard);
 $('#boardNameSave').addEventListener('click',()=>{setName($('#boardName').value);loadBoard();});
 $('#boardName').addEventListener('keydown',e=>{if(e.key==='Enter'){setName($('#boardName').value);loadBoard();}});
@@ -1611,7 +1645,7 @@ function frame(t){
 setMute(muted);setAmmo(prefAmmo());
 const startIdx=clamp(store.get('last',0)|0,0,DAYS.length-1);
 dayIdx=unlocked(startIdx)?startIdx:0;DAY=DAYS[dayIdx];loadLevel(0);
-renderSpots();show('#title');
+renderSpots();show('#title');loadTop5();
 requestAnimationFrame(frame);
 })();
 </script>
