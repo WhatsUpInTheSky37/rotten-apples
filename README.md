@@ -1,6 +1,6 @@
 # Rotten Apples
 
-A first-person browser game: hide in your front garden, watch the cars come down the street, and throw apples, eggs or raw corn cobs until the drivers swerve off the road.
+A first-person browser game: hide in your front garden, watch the cars come down the street, and throw apples, tomatoes, eggs, corn cobs, watermelons or pumpkins until the drivers swerve off the road.
 
 **Play:** open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → deploy from `main`, root folder).
 
@@ -8,9 +8,9 @@ A first-person browser game: hide in your front garden, watch the cars come down
 - Tap the title screen to start, then pick a day. **Options** has sound, ammo, and a best-score reset
 - **Aim** with the mouse or your finger
 - **Hold, then release** to throw. Holding longer throws harder, and the dotted arc shows where it's headed
-- **E** cycles apples → eggs → corn. **P** pauses. **M** mutes
+- **E** switches ammo, or pick it on the day screen. **P** pauses. **M** mutes
 - Only a **direct windshield hit** sends a car off the road. A hit anywhere else just rattles the driver
-- **Corn** is heavy: it throws about 15% slower, but every hit is worth 50% more points
+- **Ammo** trades speed for points: tomatoes are fastest with a quick reload (x0.9 points); apples and eggs are the all-rounders; corn x1.5; watermelons x1.8 and pumpkins x2.2 are slow and heavy but big enough to be easier to land
 - Lead the car. Any hit scores, but only a **windshield** hit makes the driver swerve off the road
 - Windshield hits, long shots, Camaros and streaks score the most. Crashed cars stay where they land, so keep pelting them
 - Three special cars pass twice each round: a grey Cybertruck (2,300), a pink topless Jeep with four girls in it (1,500), and a blue T-top IROC-Z with the tops out and two guys in it (1,500). Each has its own callout when you hit it

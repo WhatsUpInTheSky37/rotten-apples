@@ -134,13 +134,20 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .ammo-pick{display:flex;flex-direction:column;gap:8px}
 .ammo-pick .lbl2{margin:0;font:700 12px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--muted)}
 .ammo-row{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
-.ammo-opt{all:unset;box-sizing:border-box;cursor:pointer;display:flex;flex-direction:column;gap:5px;min-width:0;padding:10px 12px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);transition:background .15s}
-.ammo-opt:hover{background:rgba(255,255,255,.1)}
+.ammo-opt{all:unset;box-sizing:border-box;cursor:pointer;position:relative;display:grid;grid-template-columns:64px minmax(0,1fr);align-items:center;gap:4px 10px;min-width:0;padding:8px 10px 8px 6px;border-radius:12px;
+  background:radial-gradient(120% 140% at 0% 50%,rgba(255,255,255,.09),rgba(255,255,255,.03) 60%);border:1px solid var(--line);transition:background .15s,transform .15s}
+.ammo-opt:hover{background:radial-gradient(120% 140% at 0% 50%,rgba(255,255,255,.14),rgba(255,255,255,.05) 60%);transform:translateY(-1px)}
 .ammo-opt:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
-.ammo-opt[aria-pressed="true"]{border-color:var(--gold);background:rgba(244,196,67,.12)}
-.ammo-opt .an{display:flex;align-items:center;gap:8px;font:400 16px/1 var(--f-display);color:var(--ink)}
-.ammo-opt .ad{font:500 12.5px/1.3 var(--f-body);color:var(--muted)}
-@media (max-width:420px){.ammo-opt .ad{display:none}}
+.ammo-opt[aria-pressed="true"]{border-color:var(--gold);background:radial-gradient(120% 140% at 0% 50%,rgba(244,196,67,.28),rgba(244,196,67,.06) 65%)}
+.ammo-opt[aria-pressed="true"]::after{content:"";position:absolute;top:7px;right:8px;width:8px;height:8px;border-radius:50%;background:var(--gold);box-shadow:0 0 8px var(--gold)}
+.ammo-opt .aimg{grid-row:1/3;width:64px;height:64px;object-fit:contain;filter:drop-shadow(0 6px 6px rgba(0,0,0,.45));transition:transform .2s}
+.ammo-opt:hover .aimg,.ammo-opt[aria-pressed="true"] .aimg{transform:scale(1.08) rotate(-4deg)}
+.ammo-opt .an{font:400 14px/1.1 var(--f-display);color:var(--ink);min-width:0;overflow-wrap:anywhere}
+.ammo-opt .an small{font:700 12px/1 var(--f-num);color:var(--gold);margin-left:4px;letter-spacing:.04em}
+.ammo-opt .bars{display:grid;grid-template-columns:auto 1fr;gap:3px 6px;align-items:center;font:700 9.5px/1 var(--f-body);letter-spacing:.1em;text-transform:uppercase;color:var(--dim)}
+.ammo-opt .pips{display:flex;gap:2px}.ammo-opt .pips i{flex:1;height:5px;border-radius:2px;background:rgba(255,255,255,.14)}.ammo-opt .pips i.on{background:var(--leaf)}
+.ammo-opt .pips.pts i.on{background:var(--gold)}.ammo-opt .pips.size i.on{background:#e8892a}
+@media (max-width:560px){.ammo-row{grid-template-columns:repeat(3,minmax(0,1fr))}.ammo-opt{grid-template-columns:1fr;justify-items:center;text-align:center;padding:8px 4px}.ammo-opt .aimg{grid-row:auto;width:54px;height:54px}.ammo-opt .bars{display:none}.ammo-opt .an{font-size:12.5px}}
 .ammo-dot.egg{border-radius:50% 50% 50% 50%/58% 58% 42% 42%;background:radial-gradient(circle at 35% 35%,#fff,#efe3cc 60%,#cdbd9c)}
 #power{position:absolute;left:50%;bottom:max(34px,calc(env(safe-area-inset-bottom,0px) + 22px));transform:translateX(-50%);width:min(320px,70vw);height:10px;border-radius:6px;background:rgba(0,0,0,.45);border:1px solid rgba(255,255,255,.2);overflow:hidden;opacity:0;transition:opacity .15s}
 #power.on{opacity:1}
@@ -216,17 +223,13 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     </div>
     <div class="ammo-pick" role="group" aria-labelledby="ammoPickLbl">
       <p class="lbl2" id="ammoPickLbl">Pick your ammo</p>
-      <div class="ammo-row">
-        <button type="button" class="ammo-opt" id="pick-apple" data-ammo="apple" aria-pressed="true"><span class="an"><span class="ammo-dot"></span>Apples</span><span class="ad">The all-rounder. Windshield hits make them swerve.</span></button>
-        <button type="button" class="ammo-opt" id="pick-egg" data-ammo="egg" aria-pressed="false"><span class="an"><span class="ammo-dot egg"></span>Eggs</span><span class="ad">Yolk on the glass. Windshield hits make them swerve.</span></button>
-        <button type="button" class="ammo-opt" id="pick-corn" data-ammo="corn" aria-pressed="false"><span class="an"><span class="ammo-dot corn"></span>Corn</span><span class="ad">Heavy and slower, but every hit pays 50% more.</span></button>
-      </div>
+      <div class="ammo-row" id="ammoRow"></div>
     </div>
     <div id="spots" class="spots"></div>
     <ul class="keys">
       <li><b>Aim</b>mouse or finger</li>
       <li><b>Hold, release</b>throw</li>
-      <li><b>E</b>apples, eggs or corn</li>
+      <li><b>E</b>switch ammo</li>
       <li><b>P</b>pause</li>
     </ul>
     <p class="fine">Only a windshield hit makes a driver swerve. The grey Cybertruck passes twice a round and pays 2,300. Cop cars cost you 400. And only in here: throwing anything at a real car can kill someone.</p>
@@ -347,7 +350,25 @@ const glowTex=()=>cached('glow',()=>canvasTex(128,128,(g,w,h)=>{const gr=g.creat
 const appleSkinTex=()=>cached('askin',()=>canvasTex(256,128,(g,w,h)=>{g.fillStyle='#b8261a';g.fillRect(0,0,w,h);for(let i=0;i<260;i++){g.strokeStyle=`rgba(${rnd(200,255)|0},${rnd(80,180)|0},${rnd(20,60)|0},${rnd(.08,.3)})`;g.lineWidth=rnd(1,4);const x=Math.random()*w;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rnd(-8,8),h*.4,x+rnd(-8,8),h*.7,x,h);g.stroke();}blobs(g,w,h,6,10,30,()=>`rgba(90,70,20,${rnd(.25,.5)})`);speckle(g,w,h,500,200,255,.4,1.2);}));
 function splatTex(kind){return cached('splat'+kind,()=>canvasTex(256,256,(g,w,h)=>{
   const cx=128,cy=128;
-  if(kind==='corn'){
+  const blob=(x,y,rx,ry,c)=>{g.fillStyle=c;g.beginPath();g.ellipse(x,y,rx,ry,Math.random()*3,0,6.3);g.fill();};
+  const spray=(n,r0,r1,c,s0,s1)=>{for(let i=0;i<n;i++){const a=Math.random()*6.3,r=rnd(r0,r1);blob(cx+Math.cos(a)*r,cy+Math.sin(a)*r,rnd(s0,s1),rnd(s0,s1)*.8,c);}};
+  if(kind==='tomato'){
+    for(let i=0;i<12;i++)blob(cx+rnd(-45,45),cy+rnd(-45,45),rnd(16,40),rnd(12,30),`rgba(${rnd(190,225)|0},${rnd(30,55)|0},${rnd(20,35)|0},.85)`);
+    spray(18,60,118,'rgba(205,40,25,.85)',3,9);
+    for(let i=0;i<5;i++)blob(cx+rnd(-60,60),cy+rnd(-60,60),rnd(8,18),rnd(5,10),'#b8231a');
+    for(let i=0;i<26;i++)blob(cx+rnd(-50,50),cy+rnd(-50,50),2.6,1.6,'rgba(244,214,120,.95)');
+    g.fillStyle='#4f7a22';for(let i=0;i<5;i++){const a=i/5*6.3;g.save();g.translate(cx+rnd(-20,20),cy+rnd(-20,20));g.rotate(a);g.beginPath();g.ellipse(9,0,9,2.5,0,0,6.3);g.fill();g.restore();}
+  }else if(kind==='watermelon'){
+    for(let i=0;i<14;i++)blob(cx+rnd(-55,55),cy+rnd(-55,55),rnd(16,42),rnd(12,32),`rgba(${rnd(225,250)|0},${rnd(70,110)|0},${rnd(90,120)|0},.85)`);
+    spray(22,65,120,'rgba(240,96,112,.85)',3,10);
+    for(let i=0;i<22;i++)blob(cx+rnd(-60,60),cy+rnd(-60,60),3.2,1.9,'#1d1712');
+    for(let i=0;i<6;i++){g.save();g.translate(cx+rnd(-95,95),cy+rnd(-95,95));g.rotate(Math.random()*6);g.fillStyle='#2f5a1e';g.fillRect(-12,-4,24,8);g.fillStyle='#e9f1c8';g.fillRect(-12,-4,24,2.5);g.restore();}
+  }else if(kind==='pumpkin'){
+    for(let i=0;i<13;i++)blob(cx+rnd(-55,55),cy+rnd(-55,55),rnd(16,42),rnd(12,32),`rgba(${rnd(225,245)|0},${rnd(120,150)|0},${rnd(30,50)|0},.88)`);
+    g.strokeStyle='rgba(240,160,60,.85)';g.lineWidth=2.4;for(let i=0;i<16;i++){g.beginPath();let x=cx+rnd(-30,30),y=cy+rnd(-30,30);g.moveTo(x,y);for(let k=0;k<5;k++){x+=rnd(-22,22);y+=rnd(-22,22);g.lineTo(x,y);}g.stroke();}
+    for(let i=0;i<20;i++)blob(cx+rnd(-70,70),cy+rnd(-70,70),5,3,'#f3e9c8');
+    for(let i=0;i<6;i++){g.save();g.translate(cx+rnd(-95,95),cy+rnd(-95,95));g.rotate(Math.random()*6);g.fillStyle='#d9731c';g.fillRect(-13,-5,26,10);g.fillStyle='#b9581a';g.fillRect(-13,3,26,2);g.restore();}
+  }else if(kind==='corn'){
     g.fillStyle='rgba(240,214,120,.35)';for(let i=0;i<6;i++){g.beginPath();g.ellipse(cx+rnd(-40,40),cy+rnd(-40,40),rnd(14,30),rnd(8,18),Math.random()*3,0,6.3);g.fill();}
     for(let i=0;i<70;i++){const a=Math.random()*6.3,r=Math.pow(Math.random(),.7)*110;g.save();g.translate(cx+Math.cos(a)*r,cy+Math.sin(a)*r);g.rotate(Math.random()*6.3);const gr=g.createRadialGradient(-2,-2,1,0,0,7);gr.addColorStop(0,'#fff1a8');gr.addColorStop(.6,'#f2c230');gr.addColorStop(1,'#c98f12');g.fillStyle=gr;g.beginPath();g.ellipse(0,0,rnd(4,6.5),rnd(3.5,5),0,0,6.3);g.fill();g.restore();}
     g.fillStyle='rgba(126,150,62,.85)';for(let i=0;i<4;i++){g.save();g.translate(cx+rnd(-70,70),cy+rnd(-70,70));g.rotate(Math.random()*6.3);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(rnd(10,20),-6,rnd(30,44),rnd(-3,3));g.quadraticCurveTo(rnd(10,20),6,0,0);g.fill();g.restore();}
@@ -429,7 +450,8 @@ const M={
 };
 const blobMat=new THREE.MeshBasicMaterial({map:blobShadowTex(),transparent:true,depthWrite:false,opacity:.75,color:0x000000});
 blobMat.color.set(0xffffff);
-const splatMats={corn:new THREE.MeshStandardMaterial({map:splatTex('corn'),transparent:true,depthWrite:false,roughness:.4,polygonOffset:true,polygonOffsetFactor:-4}),apple:new THREE.MeshStandardMaterial({map:splatTex('apple'),transparent:true,depthWrite:false,roughness:.35,polygonOffset:true,polygonOffsetFactor:-4}),egg:new THREE.MeshStandardMaterial({map:splatTex('egg'),transparent:true,depthWrite:false,roughness:.2,polygonOffset:true,polygonOffsetFactor:-4})};
+const splatMats={tomato:null,corn:new THREE.MeshStandardMaterial({map:splatTex('corn'),transparent:true,depthWrite:false,roughness:.4,polygonOffset:true,polygonOffsetFactor:-4}),apple:new THREE.MeshStandardMaterial({map:splatTex('apple'),transparent:true,depthWrite:false,roughness:.35,polygonOffset:true,polygonOffsetFactor:-4}),egg:new THREE.MeshStandardMaterial({map:splatTex('egg'),transparent:true,depthWrite:false,roughness:.2,polygonOffset:true,polygonOffsetFactor:-4})};
+for(const k of['tomato','watermelon','pumpkin'])splatMats[k]=new THREE.MeshStandardMaterial({map:splatTex(k),transparent:true,depthWrite:false,roughness:.35,polygonOffset:true,polygonOffsetFactor:-4});
 const DECAL_GEO=new THREE.PlaneGeometry(1,1);
 const paintCache={};
 function paint(hex){return paintCache[hex]||(paintCache[hex]=new THREE.MeshPhysicalMaterial({color:C(hex),metalness:.5,roughness:.32,clearcoat:.7,clearcoatRoughness:.12,envMapIntensity:1.25}));}
@@ -873,11 +895,29 @@ const HUSK_MAT=new THREE.MeshStandardMaterial({color:C('#8aa04a'),roughness:.8,s
 function makeCorn(){const g=new THREE.Group();const c=new THREE.Mesh(CORN_GEO,CORN_MAT);c.castShadow=true;g.add(c);
   for(let i=0;i<3;i++){const hk=new THREE.Mesh(new THREE.SphereGeometry(.03,8,6,0,1.6,0,Math.PI),HUSK_MAT);hk.scale.set(.75,2.3,.75);hk.position.y=-.07;hk.rotation.y=i*2.1;g.add(hk);}
   const st=new THREE.Mesh(new THREE.CylinderGeometry(.009,.011,.03,6),std('cornstem',{color:C('#9b8a52'),roughness:.9}));st.position.y=-.11;g.add(st);return g;}
-const held=new THREE.Group();const heldApple=makeApple(),heldEgg=makeEgg(),heldCorn=makeCorn();held.add(heldApple,heldEgg,heldCorn);heldApple.scale.setScalar(1.25);heldEgg.scale.setScalar(1.25);heldCorn.scale.setScalar(1.15);heldCorn.rotation.set(.5,0,-.9);heldCorn.position.set(.02,.03,0);heldCorn.visible=false;camera.add(held);held.visible=false;
+// Tomato: small, glossy, slightly lobed, with a green star of sepals.
+const TOMATO_GEO=(()=>{const g=new THREE.SphereGeometry(.048,22,16);const p=g.attributes.position,v=new V3();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const a=Math.atan2(v.z,v.x);const k=1+.05*Math.cos(a*5)*(1-Math.abs(v.y/.048));v.x*=k;v.z*=k;v.y*=.82;p.setXYZ(i,v.x,v.y,v.z);}g.computeVertexNormals();return g;})();
+const TOMATO_MAT=new THREE.MeshStandardMaterial({color:C('#d42c1c'),roughness:.22,metalness:0});
+function makeTomato(){const g=new THREE.Group();const t=new THREE.Mesh(TOMATO_GEO,TOMATO_MAT);t.castShadow=true;g.add(t);const sm=std('sepal',{color:C('#3f6e1f'),roughness:.7});
+  for(let i=0;i<5;i++){const l=new THREE.Mesh(new THREE.SphereGeometry(.016,6,4),sm);l.scale.set(1.3,.2,.45);const a=i/5*6.28;l.position.set(Math.cos(a)*.013,.04,Math.sin(a)*.013);l.rotation.y=-a;g.add(l);}
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(.004,.005,.018,5),sm);st.position.y=.048;g.add(st);return g;}
+// Watermelon: a big striped oval.
+const melonTex=()=>cached('melon',()=>canvasTex(256,128,(g,w,h)=>{g.fillStyle='#3f7a2c';g.fillRect(0,0,w,h);for(let x=0;x<w;x+=21){g.fillStyle='#1f4a1a';g.beginPath();g.moveTo(x,0);for(let y=0;y<=h;y+=8)g.lineTo(x+Math.sin(y*.22+x)*3.5,y);for(let y=h;y>=0;y-=8)g.lineTo(x+9+Math.sin(y*.2+x)*3.5,y);g.fill();}speckle(g,w,h,1500,60,200,.12,1.6);}));
+const MELON_GEO=(()=>{const g=new THREE.SphereGeometry(.12,26,18);g.scale(1,.92,1.3);g.rotateX(Math.PI/2);return g;})();
+const MELON_MAT=new THREE.MeshStandardMaterial({map:melonTex(),roughness:.38});
+function makeMelon(){const g=new THREE.Group();const m=new THREE.Mesh(MELON_GEO,MELON_MAT);m.castShadow=true;g.add(m);const st=new THREE.Mesh(new THREE.CylinderGeometry(.006,.008,.02,5),std('melonstem',{color:C('#7a6a3a'),roughness:.9}));st.position.y=.115;g.add(st);return g;}
+// Pumpkin: ribbed, squat, with a crooked stem.
+const PUMPKIN_GEO=(()=>{const g=new THREE.SphereGeometry(.13,32,20);const p=g.attributes.position,v=new V3();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const a=Math.atan2(v.z,v.x);const rib=1-.07*Math.pow(Math.abs(Math.cos(a*4)),.6);v.x*=rib;v.z*=rib;v.y*=.74;const top=Math.max(0,v.y/.096);v.y-=.02*Math.pow(top,6);p.setXYZ(i,v.x,v.y,v.z);}g.computeVertexNormals();return g;})();
+const PUMPKIN_MAT=new THREE.MeshStandardMaterial({color:C('#e07a1f'),roughness:.55});
+function makePumpkin(){const g=new THREE.Group();const m=new THREE.Mesh(PUMPKIN_GEO,PUMPKIN_MAT);m.castShadow=true;g.add(m);const st=new THREE.Mesh(new THREE.CylinderGeometry(.012,.018,.06,7),std('pstem',{color:C('#5d6a2c'),roughness:.85}));st.position.y=.1;st.rotation.z=.25;g.add(st);return g;}
+const AMMO_MAKE={apple:makeApple,egg:makeEgg,corn:makeCorn,tomato:makeTomato,watermelon:makeMelon,pumpkin:makePumpkin};
+const held=new THREE.Group();const heldApple=makeApple(),heldEgg=makeEgg(),heldCorn=makeCorn(),heldTomato=makeTomato(),heldMelon=makeMelon(),heldPumpkin=makePumpkin();held.add(heldApple,heldEgg,heldCorn,heldTomato,heldMelon,heldPumpkin);
+heldTomato.scale.setScalar(1.2);heldMelon.scale.setScalar(.62);heldMelon.position.set(.03,-.03,-.04);heldMelon.rotation.set(.3,.5,0);heldPumpkin.scale.setScalar(.58);heldPumpkin.position.set(.03,-.03,-.04);for(const h of[heldTomato,heldMelon,heldPumpkin])h.visible=false;
+const HELD_BY={apple:heldApple,egg:heldEgg,corn:heldCorn,tomato:heldTomato,watermelon:heldMelon,pumpkin:heldPumpkin};heldApple.scale.setScalar(1.25);heldEgg.scale.setScalar(1.25);heldCorn.scale.setScalar(1.15);heldCorn.rotation.set(.5,0,-.9);heldCorn.position.set(.02,.03,0);heldCorn.visible=false;camera.add(held);held.visible=false;
 const heldShadowFix=()=>{held.traverse(o=>{if(o.isMesh)o.castShadow=false;});};heldShadowFix();
 const DOT_GEO=new THREE.SphereGeometry(.05,8,6);const dots=new THREE.InstancedMesh(DOT_GEO,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false}),30);dots.count=0;dots.frustumCulled=false;
 const PART_GEO=new THREE.IcosahedronGeometry(.035,0);
-const partMats={kernel:std('kernel',{color:C('#f2c230'),roughness:.4}),husk:std('huskbit',{color:C('#8aa04a'),roughness:.8}),flesh:std('flesh',{color:C('#efdca0'),roughness:.6}),skin:std('pskin',{color:C('#a8261a'),roughness:.5}),yolk:std('yolk',{color:C('#f6b21c'),roughness:.3}),shell:std('shell',{color:C('#f3ead6'),roughness:.6}),white:std('eggwhite',{color:C('#fbfaf2'),roughness:.15,transparent:true,opacity:.8})};
+const partMats={tred:std('tred',{color:C('#cf2a1a'),roughness:.3}),tseed:std('tseed',{color:C('#f2d67a'),roughness:.4}),mpink:std('mpink',{color:C('#f0607a'),roughness:.35}),mrind:std('mrind',{color:C('#2f5a1e'),roughness:.6}),mseed:std('mseed',{color:C('#1d1712'),roughness:.4}),porange:std('porange',{color:C('#e8892a'),roughness:.5}),pseed:std('pseed',{color:C('#f3e9c8'),roughness:.5}),kernel:std('kernel',{color:C('#f2c230'),roughness:.4}),husk:std('huskbit',{color:C('#8aa04a'),roughness:.8}),flesh:std('flesh',{color:C('#efdca0'),roughness:.6}),skin:std('pskin',{color:C('#a8261a'),roughness:.5}),yolk:std('yolk',{color:C('#f6b21c'),roughness:.3}),shell:std('shell',{color:C('#f3ead6'),roughness:.6}),white:std('eggwhite',{color:C('#fbfaf2'),roughness:.15,transparent:true,opacity:.8})};
 
 /* ---------------- audio ---------------- */
 // Soft, close, ASMR-style sound. Everything is synthesized, goes through a gentle compressor and a small room reverb,
@@ -1091,12 +1131,12 @@ function updateCrashed(c,dt){
 function aimDir(origin){camera.updateMatrixWorld();raycaster.setFromCamera({x:aim.nx,y:aim.ny},camera);const p=raycaster.ray.origin.clone().addScaledVector(raycaster.ray.direction,40);return p.sub(origin).normalize();}
 function throwOrigin(){camera.updateMatrixWorld();return camera.localToWorld(new V3(.24,-.16,-.55));}
 // Corn is heavier: it leaves the hand about 15% slower.
-function throwSpeed(){return (9+27*power)*(ammo==='corn'?.85:1);}
+function throwSpeed(){return (9+27*power)*AMMO_INFO[ammo].speed;}
 function doThrow(){
   if(!(state==='play'||(state==='showdown'&&SD.apples>0&&SD.phase>=2))||reload>0)return;const o=throwOrigin();const v=aimDir(o).multiplyScalar(throwSpeed());
-  const m=ammo==='corn'?makeCorn():ammo==='egg'?makeEgg():makeApple();m.position.copy(o);scene.add(m);
+  const m=AMMO_MAKE[ammo]();m.position.copy(o);scene.add(m);
   world.apples.push({mesh:m,pos:o,vel:v,spin:new V3(rnd(-14,14),rnd(-14,14),rnd(-14,14)),t:0,type:ammo});
-  throws++;reload=.42;SFX.throw();shake=Math.max(shake,.12);power=0;
+  throws++;reload=AMMO_INFO[ammo].reload;SFX.throw();shake=Math.max(shake,.12);power=0;
   if(state==='showdown'){SD.apples--;$('#sdApples').textContent=SD.apples;}
   if(hintShown&&throws>=2){hintShown=false;$('#hint').style.opacity=0;}
 }
@@ -1107,10 +1147,10 @@ function updatePreview(){
     if(p.y<LV.groundAt(p.x,p.z))break;if(i>18)break;}
   dots.count=n;dots.instanceMatrix.needsUpdate=true;
 }
-function hitTest(c,p){const T=c.T;const gp=c.group.position;const dx=p.x-gp.x,dz=p.z-gp.z;if(dx*dx+dz*dz>14)return null;const lp=c.group.worldToLocal(p.clone());
-  if(Math.abs(lp.x)>T.L/2+.12||Math.abs(lp.z)>T.W/2+.1||lp.y<.12)return null;
+function hitTest(c,p,pad=0){const T=c.T;const gp=c.group.position;const dx=p.x-gp.x,dz=p.z-gp.z;if(dx*dx+dz*dz>16)return null;const lp=c.group.worldToLocal(p.clone());
+  if(Math.abs(lp.x)>T.L/2+.12+pad||Math.abs(lp.z)>T.W/2+.1+pad||lp.y<.12-pad)return null;
   let top;if(lp.x<=T.rf&&lp.x>=T.rr)top=T.roof+.07;else if(lp.x>T.rf&&lp.x<T.cf)top=lerp(T.roof,T.belt,(lp.x-T.rf)/(T.cf-T.rf))+.07;else if(lp.x<T.rr&&lp.x>T.cr)top=lerp(T.roof,T.belt,(T.rr-lp.x)/(T.rr-T.cr))+.07;else top=(lp.x>0?hoodTop(T,lp.x):T.trunk)+.1;
-  return lp.y<=top?lp:null;}
+  return lp.y<=top+pad?lp:null;}
 function isWindshield(c,lp){const T=c.T;return lp.x>T.rf-.08&&lp.x<T.cf+.12&&lp.y>T.belt-.04&&Math.abs(lp.z)<T.W/2-.08;}
 function decalOnCar(c,lp,type){const T=c.T,hw=T.W/2;const pos=new V3(),n=new V3();
   if(isWindshield(c,lp)){const dx=T.cf-T.rf,dy=T.roof-T.belt;n.set(dy,dx,0).normalize();const t=clamp((lp.x-T.rf)/dx,0,1);pos.set(lp.x,lerp(T.roof,T.belt,t)+.03,clamp(lp.z,-hw*.7,hw*.7));}
@@ -1118,20 +1158,20 @@ function decalOnCar(c,lp,type){const T=c.T,hw=T.W/2;const pos=new V3(),n=new V3(
   else if(lp.x>T.L/2-.08){n.set(1,0,0);pos.set(T.L/2+.1,clamp(lp.y,T.clr+.2,T.hood-.05),lp.z);}
   else if(lp.x<-T.L/2+.08){n.set(-1,0,0);pos.set(-T.L/2-.1,clamp(lp.y,T.clr+.2,T.trunk-.05),lp.z);}
   else{n.set(0,1,0);let y;if(lp.x<=T.rf&&lp.x>=T.rr)y=T.open?T.belt+.08:T.roof+.06;else if(lp.x>=T.cf){y=hoodTop(T,lp.x)+.075;if(T.hoodF!=null){const dx=T.L/2-T.cf,dy=T.hood-T.hoodF;n.set(dy,dx,0).normalize();}}else if(lp.x<=T.cr)y=T.trunk+.075;else{const dx=T.rr-T.cr,dy=T.roof-T.belt;n.set(-dy,dx,0).normalize();y=lerp(T.roof,T.belt,clamp((T.rr-lp.x)/dx,0,1))+.03;}pos.set(lp.x,y,clamp(lp.z,-hw*.8,hw*.8));}
-  pos.addScaledVector(n,.012);const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.position.copy(pos);m.quaternion.setFromUnitVectors(new V3(0,0,1),n);m.rotateZ(Math.random()*6.28);const s=rnd(.6,.85);m.scale.set(s,s,1);c.group.add(m);}
-function groundSplat(p,type,gy){const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*6.3;m.position.set(p.x,gy+.025,p.z);const s=rnd(.7,1.05);m.scale.set(s,s,1);m.receiveShadow=true;scene.add(m);world.splats.push(m);if(world.splats.length>40){scene.remove(world.splats.shift());}}
-function burst(p,type,base){const mats=type==='corn'?[partMats.kernel,partMats.kernel,partMats.kernel,partMats.husk]:type==='egg'?[partMats.yolk,partMats.shell,partMats.white,partMats.white]:[partMats.flesh,partMats.flesh,partMats.skin];
-  for(let i=0;i<16;i++){const m=new THREE.Mesh(PART_GEO,pick(mats));m.position.copy(p);const s=rnd(.5,1.4);m.scale.setScalar(s);scene.add(m);const v=new V3(rnd(-1,1),rnd(.4,1.6),rnd(-1,1)).multiplyScalar(rnd(1.5,4.5));if(base)v.addScaledVector(base,.6);world.parts.push({m,v,life:rnd(.8,1.4),spin:rnd(-10,10)});}}
+  pos.addScaledVector(n,.012);const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.position.copy(pos);m.quaternion.setFromUnitVectors(new V3(0,0,1),n);m.rotateZ(Math.random()*6.28);const s=rnd(.6,.85)*((AMMO_INFO[type]||{}).splat||1);m.scale.set(s,s,1);c.group.add(m);}
+function groundSplat(p,type,gy){const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*6.3;m.position.set(p.x,gy+.025,p.z);const s=rnd(.7,1.05)*((AMMO_INFO[type]||{}).splat||1);m.scale.set(s,s,1);m.receiveShadow=true;scene.add(m);world.splats.push(m);if(world.splats.length>40){scene.remove(world.splats.shift());}}
+function burst(p,type,base){const big=type==='watermelon'||type==='pumpkin';const mats=type==='tomato'?[partMats.tred,partMats.tred,partMats.tseed]:type==='watermelon'?[partMats.mpink,partMats.mpink,partMats.mpink,partMats.mrind,partMats.mseed]:type==='pumpkin'?[partMats.porange,partMats.porange,partMats.pseed,partMats.porange]:type==='corn'?[partMats.kernel,partMats.kernel,partMats.kernel,partMats.husk]:type==='egg'?[partMats.yolk,partMats.shell,partMats.white,partMats.white]:[partMats.flesh,partMats.flesh,partMats.skin];
+  for(let i=0;i<(big?34:16);i++){const m=new THREE.Mesh(PART_GEO,pick(mats));m.position.copy(p);const s=rnd(.5,1.4)*(big?1.7:1);m.scale.setScalar(s);scene.add(m);const v=new V3(rnd(-1,1),rnd(.4,1.6),rnd(-1,1)).multiplyScalar(rnd(1.5,4.5));if(base)v.addScaledVector(base,.6);world.parts.push({m,v,life:rnd(.8,1.4),spin:rnd(-10,10)});}}
 function updateApples(dt){
   const sub=3,h=dt/sub;
   for(const a of world.apples){if(a.done)continue;a.t+=dt;
     for(let k=0;k<sub&&!a.done;k++){a.vel.y-=G*h;a.pos.addScaledVector(a.vel,h);
-      for(const c of world.cars){const lp=hitTest(c,a.pos);if(lp){onHit(c,lp,a);a.done=true;break;}}
+      for(const c of world.cars){const lp=hitTest(c,a.pos,AMMO_INFO[a.type].pad);if(lp){onHit(c,lp,a);a.done=true;break;}}
       if(!a.done&&state==='showdown'&&SD.man&&!SD.hit){const m=SD.man.position;const dx=a.pos.x-m.x,dz=a.pos.z-m.z;if(dx*dx+dz*dz<Math.pow(.42*SD.v.w,2)&&a.pos.y>0&&a.pos.y<1.85*SD.v.h){onManHit(a);a.done=true;}}
       if(!a.done&&state==='showdown'&&SD.car){const lp=hitTest(SD.car,a.pos);if(lp){burst(a.pos,a.type);decalOnCar(SD.car,lp,a.type);SFX.splat(1);SFX.thunk(1);popup('Not him. The car.',a.pos,'small');a.done=true;}}
       if(a.done)break;const gy=LV.groundAt(a.pos.x,a.pos.z);if(a.pos.y<=gy){onMiss(a,gy);a.done=true;}}
     a.mesh.position.copy(a.pos);a.mesh.rotation.x+=a.spin.x*dt;a.mesh.rotation.y+=a.spin.y*dt;a.mesh.rotation.z+=a.spin.z*dt;
-    const sc=1+Math.min(2.2,a.pos.distanceTo(camera.position)/22);a.mesh.scale.setScalar(sc);
+    const big=AMMO_INFO[a.type].pad>.1;const sc=1+Math.min(big?.6:2.2,a.pos.distanceTo(camera.position)/(big?60:22));a.mesh.scale.setScalar(sc);
     if(a.t>7)a.done=true;}
   world.apples=world.apples.filter(a=>{if(a.done)scene.remove(a.mesh);return !a.done;});
 }
@@ -1146,12 +1186,12 @@ function onHit(c,lp,a){
   const ws=isWindshield(c,lp);const dist=wp.distanceTo(camera.position);
   // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
   let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
-  // A heavy corn cob dents the car: 50% more points.
-  let pts=Math.round(base*mult*(a.type==='corn'?1.5:1));if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
-  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED! x1.5');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
+  // Heavier ammo pays more per hit (corn x1.5, watermelon x1.8, pumpkin x2.2; tomatoes x0.9).
+  let pts=Math.round(base*mult*AMMO_INFO[a.type].pts);if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
+  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(WS_BANNER[a.type]||'WINDSHIELD!');else if(AMMO_INFO[a.type].pts>1)banner(AMMO_INFO[a.type].name.toUpperCase().replace(/S$/,'')+'! x'+AMMO_INFO[a.type].pts);else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   SFX.bling(combo,ws||!!SPECIALS[c.kind],wp);
   // Only a direct windshield hit makes the driver swerve off the road, whatever you throw. Anywhere else just rattles them.
-  if(a.type==='corn')SFX.thunk(vol*1.4);
+  if(AMMO_INFO[a.type].pts>1)SFX.thunk(vol*(AMMO_INFO[a.type].heavy?1.8:1.4),wp);
   if(ws){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
   const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:c.kind==='sublime'?['NOT THE CUTLASS!','I WAS JAMMING!','BRO, SANTERIA WAS ON!','MY CUTLASS, MAN!']:c.kind==='cavalier'?['MY CAVALIER!','IT\'S PAID OFF!','MOM\'S GONNA KILL ME!','IT ALREADY HAD DENTS!']:c.kind==='transam'?['NOT THE TRANS AM!','THE T-TOPS ARE OFF, MAN!','I JUST GOT IT DETAILED!','APPLE IN MY LAP!']:c.kind==='p968'?['IT\'S A 968!','DO YOU KNOW WHAT THIS IS?!','A PORSCHE?! REALLY?!','ONLY 4,000 MADE!']:null;
   setTimeout(()=>popup(quips?pick(quips):pick(['HEY!','MY PAINT!','ARE YOU KIDDING?!','WHO THREW THAT?','I JUST WASHED IT!','UNBELIEVABLE!','KIDS!','WTF YO!','BEAT HIS ASS!','THAT WAS A LEASE!','MY KID IS IN HERE!','I KNOW WHERE YOU LIVE!','NOT THE PAINT PROTECTION!','I\'M CALLING YOUR MOM!']),c.group.position.clone().setY(2.4),'say'),420);
@@ -1303,12 +1343,23 @@ function updateHUD(force){renderGoal();
   if(force||hudCache.t!==t){const el=$('#time');el.textContent=t;el.classList.toggle('low',t<=10&&state==='play');hudCache.t=t;}
   const mult=Math.min(4,1+.5*Math.max(0,combo-1));const ct=combo>1?`x${mult.toFixed(1).replace('.0','')} streak · ${combo}`:'No streak';if(force||hudCache.ct!==ct){const el=$('#combo');el.textContent=ct;el.classList.toggle('hot',combo>1);hudCache.ct=ct;}
 }
-const AMMO=['apple','egg','corn'],AMMO_NAME={apple:'Apples',egg:'Eggs',corn:'Corn'};
+// Each ammo trades speed against points. speed: throw speed multiplier; pts: points multiplier; reload: seconds between throws;
+// pad: how much bigger its hit zone is (big ammo is easier to land); pips are the 1-5 bars shown on the picker.
+const AMMO_INFO={
+  apple:{name:'Apples',speed:1,pts:1,reload:.42,pad:0,splat:1,pips:[3,2,2],blurb:'The all-rounder.'},
+  tomato:{name:'Tomatoes',speed:1.12,pts:.9,reload:.3,pad:0,splat:1,pips:[4,2,2],blurb:'Fast and quick to reload.'},
+  egg:{name:'Eggs',speed:1,pts:1,reload:.42,pad:0,splat:1,pips:[3,2,1],blurb:'Yolk all over the glass.'},
+  corn:{name:'Corn',speed:.85,pts:1.5,reload:.5,pad:.03,splat:1.1,pips:[2,3,2],blurb:'Heavy cob, 50% more points.'},
+  watermelon:{name:'Watermelons',speed:.74,pts:1.8,reload:.75,pad:.14,splat:1.7,heavy:true,pips:[2,4,4],blurb:'Big and slow. Hard to miss.'},
+  pumpkin:{name:'Pumpkins',speed:.68,pts:2.2,reload:.9,pad:.18,splat:1.9,heavy:true,pips:[1,5,5],blurb:'Slowest throw, biggest payout.'},
+};
+const AMMO=['apple','tomato','egg','corn','watermelon','pumpkin'],AMMO_NAME=Object.fromEntries(AMMO.map(k=>[k,AMMO_INFO[k].name]));
+const WS_BANNER={egg:'YOLK ON THE GLASS!',corn:'CRACKED THE GLASS!',tomato:'KETCHUP!',watermelon:'MELON ON THE GLASS!',pumpkin:'PUMPKIN SMASH!'};
 function prefAmmo(){const a=store.get('ammo','apple');return AMMO.includes(a)?a:'apple';}
 function nextAmmo(){return AMMO[(AMMO.indexOf(ammo)+1)%AMMO.length];}
-const HINTS={apple:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',egg:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',corn:'Corn is heavy: it flies slower, but every hit is worth 50% more. Hit the windshield to make them swerve.'};
+const HINTS=Object.fromEntries(AMMO.map(k=>[k,(k==='apple'||k==='egg'?'':AMMO_INFO[k].name+': '+AMMO_INFO[k].blurb+' ')+'Hold to wind up, release to throw. Hit the windshield to make them swerve.']));
 let hintTimer=0;
-function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=HINTS[a];if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
+function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=HINTS[a];if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];for(const k in HELD_BY)HELD_BY[k].visible=k===a;document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
 function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.9;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
@@ -1385,7 +1436,19 @@ $('#titleSound').addEventListener('click',e=>{e.stopPropagation();initAudio();se
 $('#optBtn').addEventListener('click',e=>{e.stopPropagation();openOptions('#title');});
 $('#optSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#optAmmo').addEventListener('click',()=>{setAmmo(nextAmmo());store.set('ammo',ammo);});
-document.querySelectorAll('.ammo-opt').forEach(b=>b.addEventListener('click',()=>{setAmmo(b.dataset.ammo);store.set('ammo',ammo);}));
+// Ammo picker: one card per ammo with a small 3D render of the real model and speed / points / size bars.
+function ammoThumbs(){const out={};try{const W=160;const r=new THREE.WebGLRenderer({antialias:true,alpha:true,preserveDrawingBuffer:true});r.setSize(W,W,false);r.outputEncoding=THREE.sRGBEncoding;r.toneMapping=THREE.ACESFilmicToneMapping;r.toneMappingExposure=.78;
+  const sc=new THREE.Scene();sc.add(new THREE.HemisphereLight(C('#fff6e8'),C('#3a2a1a'),.8));const k=new THREE.DirectionalLight(0xffffff,1.6);k.position.set(1.5,2,2.5);sc.add(k);const rim=new THREE.DirectionalLight(C('#ffd9a0'),1.2);rim.position.set(-2,1,-1.5);sc.add(rim);
+  const cam=new THREE.PerspectiveCamera(28,1,.01,10);
+  for(const id of AMMO){const m=AMMO_MAKE[id]();m.traverse(o=>{if(o.isMesh)o.castShadow=false;});const box=new THREE.Box3().setFromObject(m),sz=box.getSize(new V3()),ct=box.getCenter(new V3());m.position.sub(ct);const g=new THREE.Group();g.add(m);g.scale.setScalar((id==='corn'?.82:.62)/Math.max(sz.x,sz.y,sz.z));
+    g.rotation.set(id==='corn'?.5:.35,id==='watermelon'?.7:id==='corn'?.9:-.5,id==='corn'?-.75:0);sc.add(g);cam.position.set(0,.18,1.55);cam.lookAt(0,0,0);r.render(sc,cam);out[id]=r.domElement.toDataURL('image/png');sc.remove(g);}
+  r.dispose();if(r.forceContextLoss)r.forceContextLoss();}catch(e){}return out;}
+function buildAmmoPicker(){const row=$('#ammoRow');if(!row)return;const th=ammoThumbs();row.innerHTML='';
+  const pips=(n,cls)=>`<span class="pips ${cls}">${[1,2,3,4,5].map(i=>`<i class="${i<=n?'on':''}"></i>`).join('')}</span>`;
+  for(const id of AMMO){const A=AMMO_INFO[id];const b=document.createElement('button');b.type='button';b.className='ammo-opt';b.id='pick-'+id;b.dataset.ammo=id;b.setAttribute('aria-pressed',String(id===ammo));b.title=A.blurb;
+    b.innerHTML=`${th[id]?`<img class="aimg" alt="" src="${th[id]}">`:'<span class="aimg"></span>'}<span class="an">${A.name}${A.pts!==1?`<small>x${A.pts}</small>`:''}</span><span class="bars"><span>Speed</span>${pips(A.pips[0],'spd')}<span>Points</span>${pips(A.pips[1],'pts')}<span>Size</span>${pips(A.pips[2],'size')}</span>`;
+    b.addEventListener('click',()=>{setAmmo(id);store.set('ammo',ammo);});row.appendChild(b);}}
+buildAmmoPicker();
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>show(optFrom));
 $('#backBtn').addEventListener('click',toTitle);
