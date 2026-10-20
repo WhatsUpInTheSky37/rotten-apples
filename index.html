@@ -98,11 +98,20 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 /* HUD */
 #hud{position:fixed;inset:0;pointer-events:none}
-.hud-top{position:absolute;left:0;right:0;top:0;display:flex;justify-content:space-between;align-items:flex-start;gap:12px;
+.hud-top{position:absolute;left:0;right:0;top:0;display:grid;grid-template-columns:minmax(0,1fr) auto minmax(0,1fr);align-items:start;gap:8px 12px;
   padding-top:max(14px,env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
+/* Timer owns the centre column; the score can grow to six digits without pushing it around. On narrow phones the buttons drop to a second row. */
+.score-box{justify-self:start}.timer{justify-self:center;text-align:center}.hud-btns{justify-self:end}
+@media (max-width:600px){
+  .hud-btns{grid-column:1/-1;justify-self:end}
+  .num{font-size:clamp(26px,9vw,40px)}
+  .hbtn{height:34px;min-width:34px;padding:0 10px;font-size:12px}
+  .combo{font-size:14px;padding:4px 8px}
+  .timer .lbl{font-size:10px;letter-spacing:.12em}
+}
 .lbl{font:700 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.6)}
-.num{font:700 46px/1 var(--f-num);font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.55)}
-.score-box{display:flex;flex-direction:column;gap:4px;min-width:0}
+.num{font:700 46px/1 var(--f-num);font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.55);white-space:nowrap}
+.score-box{display:flex;flex-direction:column;gap:4px;min-width:0;align-items:flex-start}
 .combo{align-self:flex-start;font:700 16px/1 var(--f-num);letter-spacing:.06em;padding:5px 9px;border-radius:6px;background:rgba(0,0,0,.4);color:var(--muted);transition:transform .12s}
 .combo.hot{background:var(--gold);color:#241a00}
 .timer{display:flex;flex-direction:column;align-items:center;gap:4px}
