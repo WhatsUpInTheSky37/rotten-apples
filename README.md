@@ -11,7 +11,7 @@ A first-person browser game: hide in your front garden, watch the cars come down
 - **E** switches between apples and eggs. **P** pauses. **M** mutes
 - Lead the car. Any hit scores, but only a **windshield** hit makes the driver swerve off the road
 - Windshield hits, long shots, Camaros and streaks score the most. Crashed cars stay where they land, so keep pelting them
-- A grey Cybertruck passes twice each round and is worth 2,300 wherever you hit it
+- Three special cars pass twice each round: a grey Cybertruck (2,300), a pink topless Jeep with four girls in it (1,500), and a blue T-top IROC-Z with the tops out and two guys in it (1,500). Each has its own callout when you hit it
 - Hitting a police car costs 400 points
 
 ## Traffic
