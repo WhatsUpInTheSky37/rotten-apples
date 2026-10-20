@@ -5,6 +5,7 @@ A first-person browser game: hide in your front garden, watch the cars come down
 **Play:** open `index.html` in a browser, or turn on GitHub Pages (Settings → Pages → deploy from `main`, root folder).
 
 ## How to play
+- Tap the title screen to start, then pick a spot. **Options** has sound, ammo, and a best-score reset
 - **Aim** with the mouse or your finger
 - **Hold, then release** to throw. Holding longer throws harder, and the dotted arc shows where it's headed
 - **E** switches between apples and eggs. **P** pauses. **M** mutes
