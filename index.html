@@ -192,7 +192,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   <div class="menu-inner">
     <div class="mhead">
       <button class="btn" id="backBtn" title="Back to title">&#8249; Back</button>
-      <div><p class="eyebrow">Pick your spot</p><h2 class="h2">Where are you throwing from?</h2></div>
+      <div><p class="eyebrow">Seven days of windfalls</p><h2 class="h2">Pick your day</h2></div>
     </div>
     <div id="spots" class="spots"></div>
     <ul class="keys">
@@ -517,6 +517,19 @@ const LEVELS=[
   sky:{top:'#26356a',horizon:'#ef8a5c',bottom:'#3a3340',sun:[-.78,.05,-.6],sunColor:'#ff9a58',cloud:.55},sunI:1.25,hemi:['#8890c4','#3b3036',.4],fog:['#a87a86',60,720],exposure:1.08,night:true,ambient:'city',build:buildRoof},
 ];
 
+// The campaign: seven days, each played at one of the four spots. Cars get faster and traffic thinner every day; targets stay reachable
+// (roughly 3 clean windshield hits on day 1, 7 or 8 on day 6) because faster and farther hits are worth more.
+const DAYS=[
+ {spot:0,speedMul:1.00,spawnMul:1.00,target:1200,blurb:'Saturday morning on Maple Court. Slow cars, plenty of them.'},
+ {spot:1,speedMul:1.08,spawnMul:1.12,target:1800,blurb:'Up the oak on the farm road. Quicker cars over the rise.'},
+ {spot:0,speedMul:1.16,spawnMul:1.25,target:2400,blurb:'Sunday on Maple Court. Faster and thinner traffic.'},
+ {spot:2,speedMul:1.24,spawnMul:1.38,target:3000,blurb:'Six lanes at highway speed. Lead hard or miss.'},
+ {spot:1,speedMul:1.32,spawnMul:1.52,target:3600,blurb:'Back in the oak. Fewer cars, and they are flying.'},
+ {spot:2,speedMul:1.40,spawnMul:1.66,target:4200,blurb:'Rush hour thins out on the overpass. Long shots pay.'},
+ {spot:3,speedMul:1.48,spawnMul:1.80,target:0,blurb:'Dusk on Pell Street. The big leagues.'},
+];
+const dayKey=i=>'d'+(i+1);
+
 /* ---------------- level builders ---------------- */
 function camRel(L,f,r,y=0){const c=new V3(...L.cam);const fw=L.fwd,rt=new V3(-fw.z,0,fw.x);return new V3(c.x+fw.x*f+rt.x*r,y,c.z+fw.z*f+rt.z*r);}
 function buildGarden(sc,R,L){
@@ -790,7 +803,7 @@ function setAmbient(kind){if(!AC)return;if(ambientNode){try{ambientNode.stop();}
 function distVol(p){return clamp(28/Math.max(1,p.distanceTo(camera.position)),.12,1);}
 
 /* ---------------- game state ---------------- */
-let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1;
+let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1,dayIdx=0,DAY=DAYS[0];
 let state='menu';
 const world={cars:[],apples:[],splats:[],parts:[],pops:[]};
 let score=0,combo=0,bestCombo=0,hits=0,throws=0,offroads=0,timeLeft=ROUND,reload=0,charging=false,power=0,pointerDown=false,ammo='apple',elapsed=0,lastTick=0,overT=-1,hintShown=true;
@@ -837,18 +850,18 @@ function spawnCar(lane,s,force){
   if(type==='sports'){color=pick(['#c41e14','#e8a20c','#1c4fbf','#e9e9e6']);kind='sports';}
   if(type==='camaro'){color=pick(['#b3121b','#111214','#ececea','#1e3f8f','#b3121b']);kind='camaro';}
   if(type==='ram'){color=pick(['#1b1d20','#8a1a12','#2c4f7c','#e9e9e6','#555a60']);kind='ram';}
-  if(state==='play'&&elapsed>8&&Math.random()<.07){type='sedan';color='#15171a';kind='police';}
+  if(state==='play'&&elapsed>8&&Math.random()<.06+.01*dayIdx){type='sedan';color='#15171a';kind='police';}
   if(force==='cyber'){type='cyber';color=CYBER_GREY;kind='cyber';}
-  const c=makeCar(type,color,kind);Object.assign(c,{lane,dir:lane.dir,off:lane.off,s,cruise:rnd(LV.speed[0],LV.speed[1])*(kind==='sports'||kind==='camaro'?1.25:1),crashed:false,police:kind==='police',sports:kind==='sports',kind});
+  const c=makeCar(type,color,kind);Object.assign(c,{lane,dir:lane.dir,off:lane.off,s,cruise:rnd(LV.speed[0],LV.speed[1])*DAY.speedMul*(kind==='sports'||kind==='camaro'?1.25:1),crashed:false,police:kind==='police',sports:kind==='sports',kind});
   c.speed=c.cruise;placeCar(c);scene.add(c.group);world.cars.push(c);return c;
 }
 function placeCar(c){const p=R.point(c.s,c.off,0);c.group.position.copy(p);c.group.rotation.set(0,R.carYaw+(c.dir<0?Math.PI:0),0);}
-function prepopulate(){for(const ln of LV.lanes){const gap=(LV.speed[0]+LV.speed[1])/2*(LV.spawn[0]+LV.spawn[1])/2;for(let s=R.sMin+20;s<R.sMax-10;s+=gap*rnd(.7,1.3)){spawnCar(ln,s);}}}
+function prepopulate(){for(const ln of LV.lanes){const gap=(LV.speed[0]+LV.speed[1])/2*DAY.speedMul*(LV.spawn[0]+LV.spawn[1])/2*DAY.spawnMul;for(let s=R.sMin+20;s<R.sMax-10;s+=gap*rnd(.7,1.3)){spawnCar(ln,s);}}}
 
 /* ---------------- traffic ---------------- */
 function updateTraffic(dt){
   const ramp=state==='play'?1+.7*(1-timeLeft/ROUND):1;
-  for(const ln of LV.lanes){ln.timer-=dt*ramp;if(ln.timer<=0){const s0=ln.dir>0?R.sMin:R.sMax;const clear=!world.cars.some(c=>!c.crashed&&c.lane===ln&&Math.abs(c.s-s0)<20);if(clear)spawnCar(ln,s0);ln.timer=rnd(LV.spawn[0],LV.spawn[1]);}}
+  for(const ln of LV.lanes){ln.timer-=dt*ramp;if(ln.timer<=0){const s0=ln.dir>0?R.sMin:R.sMax;const clear=!world.cars.some(c=>!c.crashed&&c.lane===ln&&Math.abs(c.s-s0)<20);if(clear)spawnCar(ln,s0);ln.timer=rnd(LV.spawn[0],LV.spawn[1])*DAY.spawnMul;}}
   // The Cybertruck shows up twice a round, at two scheduled moments, in whichever lane has room.
   if(state==='play'&&cyberN<cyberTimes.length&&elapsed>=cyberTimes[cyberN]){const ln=pick(LV.lanes);const s0=ln.dir>0?R.sMin:R.sMax;if(!world.cars.some(c=>!c.crashed&&c.lane===ln&&Math.abs(c.s-s0)<26)){spawnCar(ln,s0,'cyber');cyberN++;}}
   for(const c of world.cars){c.crashed?updateCrashed(c,dt):updateDriving(c,dt);c.group.updateMatrixWorld();}
@@ -947,9 +960,10 @@ function onHit(c,lp,a){
   if(c.police){score=Math.max(0,score-400);combo=0;popup('-400',wp,'bad');banner('THAT WAS A COP','bad');c.sirenOn=true;SFX.siren();c.cruise*=1.15;setTimeout(()=>popup(pick(['PULL OVER!','I SAW THAT!','STAY RIGHT THERE!']),c.group.position.clone().setY(2.6),'say'),350);updateHUD(true);return;}
   combo++;bestCombo=Math.max(bestCombo,combo);const mult=Math.min(4,1+.5*(combo-1));
   const ws=isWindshield(c,lp);const dist=wp.distanceTo(camera.position);
-  let base=100+Math.round(dist*4)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;
-  let pts=Math.round(base*mult);if(c.kind==='cyber')pts=CYBER_PTS;addScore(pts);popup('+'+pts,wp,'gold');
-  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':'WINDSHIELD!');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');else if(dist>45)banner('LONG SHOT!');
+  // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
+  let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
+  let pts=Math.round(base*mult);if(c.kind==='cyber')pts=CYBER_PTS;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
+  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':'WINDSHIELD!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   if(combo>1)SFX.ding(combo);
   // Only a windshield hit makes the driver swerve; anything else just rattles them.
   if(ws){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
@@ -983,14 +997,15 @@ function setAmmo(a){ammo=a;$('#ammoTxt').textContent=a==='apple'?'Apples':'Eggs'
 function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#muteBtn').textContent=m?'Sound off':'Sound on';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
-function unlocked(i){return i===0||(best[LEVELS[i-1].id]||0)>=LEVELS[i-1].target;}
-function renderSpots(){const box=$('#spots');box.innerHTML='';LEVELS.forEach((L,i)=>{const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+L.id;
-  const bs=best[L.id]||0;
-  b.innerHTML=`<span class="no">Spot ${i+1} · ${L.where}</span><span class="nm">${L.name}</span><span class="bl">${L.blurb}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${L.target?`Unlock next at ${L.target.toLocaleString()}`:'Final spot'}</i>`:`<span>Locked</span><i>Score ${LEVELS[i-1].target.toLocaleString()} at ${LEVELS[i-1].name}</i>`}</span>`;
+function unlocked(i){return i===0||(best[dayKey(i-1)]||0)>=DAYS[i-1].target;}
+function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const L=LEVELS[D.spot];const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
+  const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}`;
+  b.innerHTML=`<span class="no">Day ${i+1} · ${L.where}</span><span class="nm">${L.name}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${D.target?`Unlock next at ${D.target.toLocaleString()}`:'Final day'}</i>`:`<span>Locked</span><i>Score ${DAYS[i-1].target.toLocaleString()} on Day ${i}</i>`}</span>`;
   if(un)b.addEventListener('click',()=>startRound(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
 function show(id){for(const s of['#title','#menu','#pause','#over','#options'])$(s).hidden=s!==id;}
 function startRound(i){
-  initAudio();if(i!==levelIdx)loadLevel(i);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
+  initAudio();dayIdx=i;DAY=DAYS[i];if(DAY.spot!==levelIdx)loadLevel(DAY.spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
+  $('#spotname').textContent=`Day ${i+1} · ${LV.name}`;
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').style.opacity=1;
   cyberTimes=[rnd(6,18),rnd(28,44)];cyberN=0;
   look.yaw=LV.yaw;look.pitch=LV.pitch;state='play';show(null);$('#hud').hidden=false;crossEl.hidden=false;held.visible=true;setAmmo(ammo);updateHUD(true);store.set('last',i);
@@ -1002,13 +1017,14 @@ function pause(){if(state!=='play')return;state='paused';charging=false;show('#p
 function resume(){if(state!=='paused')return;state='play';show(null);}
 function endRound(){
   state='over';charging=false;held.visible=false;crossEl.hidden=true;
-  const prev=best[LV.id]||0;const isBest=score>prev;if(isBest){best[LV.id]=score;store.set('best',best);}
-  const wasLocked=levelIdx+1<LEVELS.length&&!(prev>=LV.target);const nowUn=levelIdx+1<LEVELS.length&&unlocked(levelIdx+1);
-  $('#overSpot').textContent=LV.name;$('#overTitle').textContent=score>=LV.target&&LV.target?'Street cleared':(hits?'Out of time':'Not a single car');
-  $('#overScore').textContent=score.toLocaleString();$('#stHits').textContent=hits;$('#stOff').textContent=offroads;$('#stAcc').textContent=(throws?Math.round(hits/throws*100):0)+'%';$('#stCombo').textContent=bestCombo;$('#stBest').textContent=(best[LV.id]||0).toLocaleString();
-  $('#stTarget').textContent=LV.target?Math.max(0,LV.target-(best[LV.id]||0)).toLocaleString():'Done';
+  const key=dayKey(dayIdx),target=DAY.target,last=dayIdx+1>=DAYS.length;
+  const prev=best[key]||0;const isBest=score>prev;if(isBest){best[key]=score;store.set('best',best);}
+  const wasLocked=!last&&!(prev>=target);const nowUn=!last&&unlocked(dayIdx+1);
+  $('#overSpot').textContent=`Day ${dayIdx+1} · ${LV.name}`;$('#overTitle').textContent=target&&score>=target?`Day ${dayIdx+1} cleared`:(last&&hits?'Final day done':(hits?'Out of time':'Not a single car'));
+  $('#overScore').textContent=score.toLocaleString();$('#stHits').textContent=hits;$('#stOff').textContent=offroads;$('#stAcc').textContent=(throws?Math.round(hits/throws*100):0)+'%';$('#stCombo').textContent=bestCombo;$('#stBest').textContent=(best[key]||0).toLocaleString();
+  $('#stTarget').textContent=target?Math.max(0,target-(best[key]||0)).toLocaleString():'Done';
   const note=$('#overNote');note.className='note';
-  if(wasLocked&&nowUn)note.textContent=`New spot unlocked: ${LEVELS[levelIdx+1].name}.`;else if(isBest)note.textContent='New personal best.';else if(LV.target&&!nowUn){note.className='note bad';note.textContent=`Score ${LV.target.toLocaleString()} here to unlock ${LEVELS[levelIdx+1].name}. Windshields and long shots pay the most.`;}else{note.className='note bad';note.textContent='Keep the streak going: every hit in a row adds to the multiplier.';}
+  if(wasLocked&&nowUn)note.textContent=`Day ${dayIdx+2} unlocked: ${LEVELS[DAYS[dayIdx+1].spot].name}. Cars get faster and fewer.`;else if(isBest)note.textContent='New personal best.';else if(target&&!nowUn){note.className='note bad';note.textContent=`Score ${target.toLocaleString()} to unlock Day ${dayIdx+2}. Far hits, windshields and streaks pay the most.`;}else{note.className='note bad';note.textContent='Keep the streak going: every hit in a row adds to the multiplier.';}
   $('#nextBtn').hidden=!nowUn;show('#over');$('#againBtn').focus();
 }
 
@@ -1031,8 +1047,8 @@ $('#muteBtn').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#pauseBtn').addEventListener('click',pause);
 $('#resumeBtn').addEventListener('click',resume);
 $('#quitBtn').addEventListener('click',toMenu);
-$('#againBtn').addEventListener('click',()=>startRound(levelIdx));
-$('#nextBtn').addEventListener('click',()=>startRound(levelIdx+1));
+$('#againBtn').addEventListener('click',()=>startRound(dayIdx));
+$('#nextBtn').addEventListener('click',()=>startRound(dayIdx+1));
 $('#menuBtn').addEventListener('click',toMenu);
 $('#startBtn').addEventListener('click',e=>{e.stopPropagation();initAudio();toMenu();});
 $('#title').addEventListener('click',e=>{if(e.target.closest('button'))return;initAudio();toMenu();});
@@ -1084,8 +1100,8 @@ function frame(t){
 
 /* ---------------- boot ---------------- */
 setMute(muted);setAmmo('apple');
-const startIdx=clamp(store.get('last',0)|0,0,LEVELS.length-1);
-loadLevel(unlocked(startIdx)?startIdx:0);
+const startIdx=clamp(store.get('last',0)|0,0,DAYS.length-1);
+dayIdx=unlocked(startIdx)?startIdx:0;DAY=DAYS[dayIdx];loadLevel(DAY.spot);
 renderSpots();show('#title');
 requestAnimationFrame(frame);
 })();
