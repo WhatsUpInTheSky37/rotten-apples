@@ -18,7 +18,7 @@ A first-person browser game: hide in your front garden, watch the cars come down
 Sedans, hatchbacks, SUVs, pickups, sports cars, a third-generation Camaro, a lifted Ram, taxis on the rooftop, the odd cop, and the Cybertruck.
 
 ## Seven days
-The game is a seven-day campaign. Every day runs the same loop: the Front Garden, the Treehouse, the Highway Overpass, the Rooftop at Dusk, then home. Your day total is the sum of the four rounds, and you can replay a spot to raise it. Every day is a tad harder: cars a little faster, traffic a little thinner, and the driver who comes for you a little quicker.
+The game is a seven-day campaign. Every day runs the same loop: the Front Garden, the Treehouse, the Highway Overpass, the Rooftop at Dusk, then home. Your day total is the sum of the four rounds, and you can replay a spot to raise it. The in-game menu lists the day's four spots: jump back to any you've reached, or ahead to the next one. Your place in a day is remembered, so the day list offers to continue where you left off. Every day is a tad harder: cars a little faster, traffic a little thinner, and the driver who comes for you a little quicker.
 
 | Day | Cars |
 |---|---|
