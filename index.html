@@ -132,6 +132,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #sdHud{position:absolute;left:50%;top:max(14px,env(safe-area-inset-top,0px));transform:translateX(-50%);display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
 #hint{position:absolute;left:50%;bottom:max(56px,calc(env(safe-area-inset-bottom,0px) + 46px));transform:translateX(-50%);width:max-content;max-width:calc(100vw - 32px);text-align:center;
   font:600 14px/1.3 var(--f-body);color:#fff;text-shadow:0 1px 4px rgba(0,0,0,.8);transition:opacity .6s}
+#fade{position:fixed;inset:0;background:#000;opacity:0;pointer-events:none;transition:opacity .9s ease;z-index:5}
 #cross{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;pointer-events:none;border-radius:50%;border:2px solid rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.25)}
 #cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
 #cross.charging{border-color:var(--gold)}
@@ -155,6 +156,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <div class="vignette"></div>
 <div id="pops"></div>
 <div id="banner"></div>
+<div id="fade"></div>
 <div id="cross" hidden></div>
 
 <div id="hud" hidden>
@@ -1058,11 +1060,12 @@ function makeDriver(v){const g=new THREE.Group();const W=v.w;const mat=(k,c,r)=>
   for(const x of[-.05,.05]){const e=mesh(new THREE.BoxGeometry(.03,.03,.01),M.trim());e.position.set(x,1.68,.145);g.add(e);}
   const brow=mesh(new THREE.BoxGeometry(.16,.02,.01),hair);brow.position.set(0,1.71,.145);brow.rotation.z=.0;g.add(brow);
   if(v.hat!=='beanie'){const hr=mesh(new THREE.SphereGeometry(.157,16,8,0,6.3,0,1.45),hair);hr.position.y=1.655;g.add(hr);}
-  if(v.hat==='cap'){const cm=mat('cap',pick(['#1565c0','#2e7d32','#b71c1c']));const c1=mesh(new THREE.CylinderGeometry(.155,.16,.1,14),cm);c1.position.y=1.77;g.add(c1);const br=mesh(new THREE.BoxGeometry(.22,.02,.16),cm);br.position.set(0,1.735,.17);g.add(br);}
+  if(v.hat==='cap'){const cm=mat('cap',v.capColor||pick(['#1565c0','#2e7d32','#b71c1c']));const c1=mesh(new THREE.CylinderGeometry(.155,.16,.1,14),cm);c1.position.y=1.77;g.add(c1);const br=mesh(new THREE.BoxGeometry(.22,.02,.16),cm);br.position.set(0,1.735,.17);g.add(br);}
   else if(v.hat==='cowboy'){const cm=mat('cow','#7a5230');const br=mesh(new THREE.CylinderGeometry(.3,.3,.025,18),cm);br.position.y=1.74;g.add(br);const cr=mesh(new THREE.CylinderGeometry(.13,.15,.15,14),cm);cr.position.y=1.82;g.add(cr);}
   else if(v.hat==='beanie'){const cm=mat('bean',pick(['#ef6c00','#6a1b9a','#00695c']));const b=mesh(new THREE.SphereGeometry(.165,16,10,0,6.3,0,1.7),cm);b.position.y=1.66;g.add(b);}
+  if(v.badge){const bd=mesh(new THREE.BoxGeometry(.07,.08,.012),std('badge',{color:C('#f4c443'),metalness:.85,roughness:.3}));bd.position.set(-.13*W,1.33,.135*W+.01);g.add(bd);const bl=mesh(new THREE.BoxGeometry(.5*W,.06,.29*W),M.trim());bl.position.y=.9;g.add(bl);}
   g.scale.y=v.h;g.userData={legL,legR,armL,armR};return g;}
-function endShowdown(){if(!SD.on)return;SD.on=false;if(SD.car)scene.remove(SD.car.group);if(SD.man)scene.remove(SD.man);SD.car=null;SD.man=null;$('#hud').classList.remove('sd');$('#sdHud').hidden=true;}
+function endShowdown(){$('#fade').style.opacity=0;if(!SD.on)return;SD.on=false;if(SD.car)scene.remove(SD.car.group);if(SD.man)scene.remove(SD.man);SD.car=null;SD.man=null;if(AR.car)scene.remove(AR.car.group);for(const m of AR.cops)scene.remove(m);AR.car=null;AR.cops=[];SD.gameOver=false;$('#hud').classList.remove('sd');$('#sdHud').hidden=true;}
 function startShowdown(){
   initAudio();pendingShowdown=false;endShowdown();if(levelIdx!==0)loadLevel(0);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   const own=LV.own;SD.v=DRIVERS[dayIdx%DRIVERS.length];
@@ -1078,7 +1081,55 @@ function startShowdown(){
   crossEl.hidden=false;held.visible=true;setAmmo('apple');charging=false;reload=0;power=0;hintShown=true;$('#hint').textContent='Two apples. Hit him before he reaches your door.';$('#hint').style.opacity=1;
 }
 function sdSay(text){if(!SD.man)return;popup(text,SD.man.position.clone().setY(1.9*SD.v.h+.2),'say');}
+function sdSayAt(m,text){popup(text,m.position.clone().setY(2.05),'say');}
+function walkAnim(m,t){const sw=Math.sin(t*7)*.5;const u=m.userData;u.legL.rotation.x=sw;u.legR.rotation.x=-sw;u.armL.rotation.x=-sw*.7;u.armR.rotation.x=sw*.7;}
+/* The finale: after the Day 7 driver goes down, a cruiser pulls in, two officers walk you to the car and drive off with you. */
+const COPS=[{skin:'#e8b894',shirt:'#1b2a4a',pants:'#1b2a4a',hair:'#222222',hat:'cap',capColor:'#1b2a4a',badge:true,h:1.06,w:1.05},{skin:'#8d5a3b',shirt:'#1b2a4a',pants:'#1b2a4a',hair:'#111111',hat:'cap',capColor:'#1b2a4a',badge:true,h:1.0,w:1.18}];
+const AR={t:0,car:null,cops:[],lineT:0,lineI:0,done:false};
+function startArrest(){
+  const own=LV.own;SD.apples=0;$('#sdHud').hidden=true;$('#hint').style.opacity=0;held.visible=false;crossEl.hidden=true;charging=false;pointerDown=false;
+  const c=makeCar('sedan','#15171a','police');c.speed=0;c.crashed=false;c.lane=null;c.dir=1;c.s=-999;c.kind='police';c.police=true;c.sirenOn=true;
+  c.group.position.copy(R.point(own.ds-9-60,1.9,0));c.group.rotation.set(0,SD.yaw0,0);scene.add(c.group);AR.car=c;AR.cops=[];AR.t=0;AR.lineT=0;AR.lineI=0;AR.done=false;
+  AR.p0=R.point(own.ds-9,1.9,0);AR.pc=R.point(own.ds-1,4.8,0);AR.p1=R.point(own.ds-3.4,12.0,0);AR.yaw1=R.carYaw-Math.PI/2-.15;
+  SFX.siren();SD.phase=10;SD.t=0;
+}
+function updateArrest(dt){
+  AR.t+=dt;const c=AR.car;policeLights(c,dt);
+  if(SD.phase===10){// cruiser comes up the street, lights going
+    const sp=17;c.group.position.addScaledVector(R.u,sp*dt);for(const w of c.wheels)w.rotation.z-=sp*dt/c.T.wr;
+    if(R.project(c.group.position).s>=R.project(AR.p0).s){SD.phase=11;AR.t=0;SFX.screech(.8);}}
+  else if(SD.phase===11){// swings in beside the other car
+    const k=Math.min(1,AR.t/1.4),e=1-Math.pow(1-k,3);const a=AR.p0.clone().lerp(AR.pc,e),b=AR.pc.clone().lerp(AR.p1,e);c.group.position.copy(a.lerp(b,e));c.group.rotation.set(0,SD.yaw0+(AR.yaw1-SD.yaw0)*e,0);
+    for(const w of c.wheels)w.rotation.z-=10*dt*(1-k)/c.T.wr;if(k>=1){SD.phase=12;AR.t=0;}}
+  else if(SD.phase===12){// doors open
+    if(AR.t>.7){for(let i=0;i<2;i++){const m=makeDriver(COPS[i]);const side=c.group.localToWorld(new V3(.3-1.3*i,0,(i?-1:1)*(c.T.W/2+.75)));m.position.set(side.x,0,side.z);scene.add(m);AR.cops.push(m);}
+      sdSayAt(AR.cops[0],'POLICE! HANDS WHERE I CAN SEE THEM!');SD.phase=13;AR.t=0;AR.lineT=0;AR.lineI=1;}}
+  else if(SD.phase===13){// they walk up to the door
+    const cp=new V3(...SD.cam);let reached=false;
+    AR.cops.forEach((m,i)=>{const dir=new V3(cp.x-m.position.x,0,cp.z-m.position.z);const dist=dir.length();dir.normalize();m.rotation.y=Math.atan2(dir.x,dir.z);const stop=1.1+.55*i;if(dist>stop){m.position.addScaledVector(dir,Math.min(1.35*dt,dist-stop));walkAnim(m,AR.t);}else if(i===0)reached=true;});
+    AR.lineT+=dt;if(AR.lineT>1.9){AR.lineT=0;sdSayAt(AR.cops[AR.lineI%2],pick(['WE GOT THE APPLE GUY.','SEVEN DAYS OF THIS, HUH?','THE CYBERTRUCK GUY CALLED. TWICE.',"DON'T RUN. PLEASE DON'T RUN.",'IS THAT A GNOME?']));AR.lineI++;}
+    if(reached){SD.phase=14;AR.t=0;shake=1;SFX.thunk(1);banner('BUSTED','bad');sdSayAt(AR.cops[0],"YOU'RE UNDER ARREST. FOR APPLES.");AR.camA=[...SD.cam];const door=c.group.localToWorld(new V3(-.7,0,c.T.W/2+1.1));AR.camB=[door.x,1.45,door.z];}}
+  else if(SD.phase===14){// walked to the cruiser, an officer on each side
+    const k=Math.min(1,AR.t/3.6),e=k*k*(3-2*k);SD.cam=[lerp(AR.camA[0],AR.camB[0],e),lerp(AR.camA[1],AR.camB[1],e)+Math.sin(AR.t*6.5)*.02,lerp(AR.camA[2],AR.camB[2],e)];
+    const cp=new V3(...SD.cam);const rx=Math.cos(look.yaw),rz=-Math.sin(look.yaw);AR.cops.forEach((m,i)=>{const off=i?.75:-.75;m.position.set(cp.x+rx*off,0,cp.z+rz*off);m.rotation.y=look.yaw+Math.PI;walkAnim(m,AR.t);});
+    const d=c.group.position.clone().sub(cp);SD.yaw=Math.atan2(-d.x,-d.z);SD.pitch=-.18;
+    if(k>=1){SD.phase=15;AR.t=0;$('#fade').style.opacity=1;SFX.thunk(.7);}}
+  else if(SD.phase===15){// in the back seat; cut to the street as the cruiser leaves
+    if(AR.t>1.5){for(const m of AR.cops)scene.remove(m);AR.cops=[];const own=LV.own;const cp=R.point(own.s-9,own.front-6,1.6);SD.cam=[cp.x,cp.y,cp.z];
+      const d=c.group.position.clone().sub(cp);SD.yaw=Math.atan2(-d.x,-d.z);SD.pitch=-.08;look.yaw=SD.yaw;look.pitch=SD.pitch;
+      AR.q0=c.group.position.clone();AR.q1=R.point(own.ds-7,1.9,0);AR.yawA=c.group.rotation.y;SD.phase=16;AR.t=0;$('#fade').style.opacity=0;SFX.siren();}}
+  else if(SD.phase===16){// backs out onto the street
+    const k=Math.min(1,AR.t/2.6),e=k*k*(3-2*k);c.group.position.lerpVectors(AR.q0,AR.q1,e);c.group.rotation.set(0,AR.yawA+(SD.yaw0-AR.yawA)*e,0);for(const w of c.wheels)w.rotation.z+=4*dt/c.T.wr;
+    if(k>=1){SD.phase=17;AR.t=0;}}
+  else if(SD.phase===17){// and away, with you in it
+    const sp=Math.min(24,5+AR.t*9);c.group.position.addScaledVector(R.u,sp*dt);for(const w of c.wheels)w.rotation.z-=sp*dt/c.T.wr;
+    const cp=new V3(...SD.cam);const d=c.group.position.clone().sub(cp);SD.yaw=Math.atan2(-d.x,-d.z);
+    if(AR.t>5.5&&!AR.done){AR.done=true;gameOverCard();}}
+  c.group.updateMatrixWorld();
+}
+function gameOverCard(){state='sdover';SD.gameOver=true;$('#sdTitle').textContent='GAME OVER';$('#sdNote').className='note';$('#sdNote').textContent='Seven days of windfalls, every driver flattened, and the cops drove off with you. Thanks for playing.';$('#sdPrimary').textContent='Title screen';show('#sdcard');$('#sdPrimary').focus();}
 function updateShowdown(dt){
+  if(SD.phase>=10){updateArrest(dt);return;}
   SD.t+=dt;const c=SD.car;
   if(SD.phase===0){// cruising up the street
     const sp=15;c.group.position.addScaledVector(R.u,sp*dt);for(const w of c.wheels)w.rotation.z-=sp*dt/c.T.wr;c.group.updateMatrixWorld();
@@ -1099,7 +1150,8 @@ function updateShowdown(dt){
 }
 function onManHit(a){const m=SD.man;SD.hit=true;SD.fallT=0;burst(a.pos,a.type,new V3(0,1,0));SFX.splat(1);SFX.thunk(1);popup('OOF!',m.position.clone().setY(1.6),'gold');banner('GOT HIM!');setTimeout(()=>sdSay(pick(['OK OK I\'M LEAVING!','MY EYE!','I\'LL BE BACK!'])),500);
   const d=new THREE.Mesh(DECAL_GEO,splatMats[a.type]);const lp=m.worldToLocal(a.pos.clone());d.position.set(lp.x,clamp(lp.y,.9,1.5)/SD.v.h,.14*SD.v.w+.01);d.scale.set(.45,.45,1);m.add(d);}
-function sdResult(ok){state='sdover';charging=false;held.visible=false;crossEl.hidden=true;const key=dayKey(dayIdx);
+function sdResult(ok){const key=dayKey(dayIdx);if(ok&&dayIdx+1>=DAYS.length){cleared[key]=true;store.set('cleared',cleared);startArrest();return;}
+  state='sdover';charging=false;held.visible=false;crossEl.hidden=true;
   if(ok){cleared[key]=true;store.set('cleared',cleared);const lastDay=dayIdx+1>=DAYS.length;$('#sdTitle').textContent=lastDay?'Seven days survived':`Day ${dayIdx+1} cleared`;$('#sdNote').className='note';$('#sdNote').textContent=lastDay?'Every spot, every day, every driver. Go wash the car.':`He's leaving. Day ${dayIdx+2} unlocked. A tad faster, a few fewer cars, and a quicker driver.`;$('#sdPrimary').textContent=lastDay?'Choose day':'Next day';}
   else{$('#sdTitle').textContent='He got you';$('#sdNote').className='note bad';$('#sdNote').textContent='Two apples and he still made it to the door. Day not cleared.';$('#sdPrimary').textContent='Try again';}
   show('#sdcard');$('#sdPrimary').focus();}
@@ -1189,7 +1241,7 @@ $('#optAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple')
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>show(optFrom));
 $('#backBtn').addEventListener('click',toTitle);
-$('#sdPrimary').addEventListener('click',()=>{if(!cleared[dayKey(dayIdx)])startShowdown();else if(dayIdx+1<DAYS.length)startRound(dayIdx+1,0);else toMenu();});
+$('#sdPrimary').addEventListener('click',()=>{if(SD.gameOver){endShowdown();toTitle();return;}if(!cleared[dayKey(dayIdx)])startShowdown();else if(dayIdx+1<DAYS.length)startRound(dayIdx+1,0);else toMenu();});
 $('#sdMenu').addEventListener('click',toMenu);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 window.addEventListener('blur',pause);
