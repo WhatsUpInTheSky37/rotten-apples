@@ -47,6 +47,9 @@ Built with [three.js](https://threejs.org) r128. It's one HTML file with no buil
 ## Goals
 Each spot has a score goal you must reach to move on: 3,000 / 4,000 / 5,000 / 6,000 on Day 1, rising 8% every day (Day 7: 4,500 / 6,000 / 7,500 / 9,000). Reach the rooftop goal to head home for the showdown. Five random special cars show up each round.
 
+## The showdown
+At the end of each day the driver you hit pulls into your driveway, gets out and wants revenge. You choose: **Run inside and call your mom** (she comes out with a rolling pin, he apologizes and peels off) or **Take him out** (throw apples until he's down: three hits). Either way, the day is cleared. On Day 7, taking him out ends with the police; Mom keeps you out of it.
+
 ## Top scores
 Set your name (title screen → Top scores, or Options). When you finish all four spots of a day, your day total is posted to a shared board, one board per day, best score per name. Scores are stored in the `rotten_scores` table in Supabase (anyone can read and add; nobody can edit or delete through the public key).
 
