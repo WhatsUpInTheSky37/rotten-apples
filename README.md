@@ -30,7 +30,7 @@ The game is a seven-day campaign. Every day runs the same loop: the Front Garden
 | 6 | ×1.30, ×0.71 |
 | 7 | ×1.36, ×0.68 |
 
-After the rooftop you head home, and the driver you hit pulls into your driveway sideways with your apple still on the windshield, hops out, and comes at you shouting. You get **two apples**. Hit them before they reach your door to clear the day and unlock the next one. Miss both and you can try the showdown again. The driver looks different every day. Survive all seven showdowns and you win.
+After the rooftop you head home, and the driver you hit pulls into your driveway sideways with your apple still on the windshield, hops out, and comes at you shouting. You get **two apples**. Hit them before they reach your door to clear the day and unlock the next one. Miss both and you can try the showdown again. The driver looks different every day. Drop the Day 7 driver and the cops pull in. Two officers walk you to the cruiser and drive off with you. Game over.
 
 Far and fast hits pay more: 7 points a metre of distance, a long-shot bonus past 45 m and a sniper bonus past 70 m, on top of the windshield and streak bonuses.
 
