@@ -573,8 +573,8 @@ const DAYS=[
 ];
 const SPOT_ORDER=[0,1,2,3];// garden, treehouse, overpass, rooftop
 // Score goal to move on from each spot. Later spots ask for more, and every day raises all four by 8%
-// (Day 1: 5,000 / 6,000 / 7,000 / 8,000; Day 7: 7,500 / 9,000 / 10,250 / 11,750) while traffic gets faster and thinner.
-const SPOT_GOALS=[5000,6000,7000,8000];
+// (Day 1: 3,000 / 4,000 / 5,000 / 6,000; Day 7: 4,500 / 6,000 / 7,500 / 9,000) while traffic gets faster and thinner.
+const SPOT_GOALS=[3000,4000,5000,6000];
 function goalFor(d,st){return Math.round(SPOT_GOALS[st]*(1+.08*d)/250)*250;}
 const SPECIALS_PER_ROUND=5;
 let goal=SPOT_GOALS[0],goalHit=false;
