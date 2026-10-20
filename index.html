@@ -254,8 +254,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
       <div><b id="stOff">0</b><span>Off the road</span></div>
       <div><b id="stAcc">0%</b><span>Accuracy</span></div>
       <div><b id="stCombo">0</b><span>Best streak</span></div>
-      <div><b id="stBest">0</b><span>Your best</span></div>
-      <div><b id="stTarget">0</b><span>To unlock next</span></div>
+      <div><b id="stBest">0</b><span>Day total</span></div>
+      <div><b id="stTarget">0</b><span>To target</span></div>
     </div>
     <p class="note" id="overNote"></p>
     <div class="row">
@@ -531,14 +531,15 @@ const LEVELS=[
 // The campaign: seven days, each played at one of the four spots. Cars get faster and traffic thinner every day; targets stay reachable
 // (roughly 3 clean windshield hits on day 1, 7 or 8 on day 6) because faster and farther hits are worth more.
 const DAYS=[
- {spot:0,speedMul:1.00,spawnMul:1.00,target:1200,blurb:'Saturday morning on Maple Court. Slow cars, plenty of them.'},
- {spot:1,speedMul:1.08,spawnMul:1.12,target:1800,blurb:'Up the oak on the farm road. Quicker cars over the rise.'},
- {spot:0,speedMul:1.16,spawnMul:1.25,target:2400,blurb:'Sunday on Maple Court. Faster and thinner traffic.'},
- {spot:2,speedMul:1.24,spawnMul:1.38,target:3000,blurb:'Six lanes at highway speed. Lead hard or miss.'},
- {spot:1,speedMul:1.32,spawnMul:1.52,target:3600,blurb:'Back in the oak. Fewer cars, and they are flying.'},
- {spot:2,speedMul:1.40,spawnMul:1.66,target:4200,blurb:'Rush hour thins out on the overpass. Long shots pay.'},
- {spot:3,speedMul:1.48,spawnMul:1.80,target:0,blurb:'Dusk on Pell Street. The big leagues.'},
+ {speedMul:1.00,spawnMul:1.00,target:3000,blurb:'Saturday. Slow cars, plenty of them.'},
+ {speedMul:1.08,spawnMul:1.12,target:4500,blurb:'Quicker cars, a few fewer of them.'},
+ {speedMul:1.16,spawnMul:1.25,target:6000,blurb:'Faster and thinner traffic.'},
+ {speedMul:1.24,spawnMul:1.38,target:7500,blurb:'Highway pace everywhere now.'},
+ {speedMul:1.32,spawnMul:1.52,target:9000,blurb:'Fewer cars, and they are flying.'},
+ {speedMul:1.40,spawnMul:1.66,target:10500,blurb:'Rush hour thins out. Long shots pay.'},
+ {speedMul:1.48,spawnMul:1.80,target:12000,blurb:'The big leagues. Everything at full tilt.'},
 ];
+const SPOT_ORDER=[0,1,2,3];// garden, treehouse, overpass, rooftop
 const dayKey=i=>'d'+(i+1);
 
 /* ---------------- level builders ---------------- */
@@ -819,7 +820,8 @@ function setAmbient(kind){if(!AC)return;if(ambientNode){try{ambientNode.stop();}
 function distVol(p){return clamp(28/Math.max(1,p.distanceTo(camera.position)),.12,1);}
 
 /* ---------------- game state ---------------- */
-let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1,dayIdx=0,DAY=DAYS[0];
+let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1,dayIdx=0,DAY=DAYS[0],spotStep=0,dayScores=[0,0,0,0];
+const dayTotal=()=>dayScores.reduce((a,b)=>a+b,0);
 let state='menu';
 const world={cars:[],apples:[],splats:[],parts:[],pops:[]};
 let score=0,combo=0,bestCombo=0,hits=0,throws=0,offroads=0,timeLeft=ROUND,reload=0,charging=false,power=0,pointerDown=false,ammo='apple',elapsed=0,lastTick=0,overT=-1,hintShown=true;
@@ -1040,7 +1042,7 @@ function startShowdown(){
   const d=SD.p1.clone().sub(cp);SD.yaw=Math.atan2(-d.x,-d.z);SD.pitch=-.12;look.yaw=SD.yaw;look.pitch=SD.pitch;
   // Their car, with your apple still on the windshield.
   const c=makeCar('sedan',SD.v.car,null);c.speed=0;c.crashed=false;c.lane=null;c.dir=1;c.s=-999;c.sports=false;c.kind=null;
-  decalOnCar(c,new V3((c.T.cf+c.T.rf)/2,(c.T.belt+c.T.roof)/2,.25),'apple');c.group.position.copy(SD.p0);c.group.rotation.set(0,SD.yaw0,0);scene.add(c.group);SD.car=c;
+  decalOnCar(c,new V3((c.T.cf+c.T.rf)/2,(c.T.belt+c.T.roof)/2,.25),'apple');c.group.position.copy(R.point(own.ds-9-42,1.9,0));/* starts well up the street and cruises in */c.group.rotation.set(0,SD.yaw0,0);scene.add(c.group);SD.car=c;
   SD.man=null;SD.on=true;SD.t=0;SD.phase=0;SD.apples=2;SD.hit=false;SD.done=false;SD.lineI=0;SD.lineT=0;SD.walkT=0;SD.fallT=-1;
   state='showdown';show(null);$('#hud').hidden=false;$('#hud').classList.add('sd');$('#sdHud').hidden=false;$('#sdApples').textContent=SD.apples;$('#sdDay').textContent='Day '+(dayIdx+1);
   crossEl.hidden=false;held.visible=true;setAmmo('apple');charging=false;reload=0;power=0;hintShown=true;$('#hint').textContent='Two apples. Hit him before he reaches your door.';$('#hint').style.opacity=1;
@@ -1068,7 +1070,7 @@ function updateShowdown(dt){
 function onManHit(a){const m=SD.man;SD.hit=true;SD.fallT=0;burst(a.pos,a.type,new V3(0,1,0));SFX.splat(1);SFX.thunk(1);popup('OOF!',m.position.clone().setY(1.6),'gold');banner('GOT HIM!');setTimeout(()=>sdSay(pick(['OK OK I\'M LEAVING!','MY EYE!','I\'LL BE BACK!'])),500);
   const d=new THREE.Mesh(DECAL_GEO,splatMats[a.type]);const lp=m.worldToLocal(a.pos.clone());d.position.set(lp.x,clamp(lp.y,.9,1.5)/SD.v.h,.14*SD.v.w+.01);d.scale.set(.45,.45,1);m.add(d);}
 function sdResult(ok){state='sdover';charging=false;held.visible=false;crossEl.hidden=true;const key=dayKey(dayIdx);
-  if(ok){cleared[key]=true;store.set('cleared',cleared);$('#sdTitle').textContent=`Day ${dayIdx+1} cleared`;$('#sdNote').className='note';$('#sdNote').textContent=`He's leaving. Day ${dayIdx+2} unlocked: ${LEVELS[DAYS[dayIdx+1].spot].name}. Cars get faster and fewer.`;$('#sdPrimary').textContent='Next day';}
+  if(ok){cleared[key]=true;store.set('cleared',cleared);$('#sdTitle').textContent=`Day ${dayIdx+1} cleared`;$('#sdNote').className='note';$('#sdNote').textContent=`He's leaving. Day ${dayIdx+2} unlocked. Cars get faster and fewer, at all four spots.`;$('#sdPrimary').textContent='Next day';}
   else{$('#sdTitle').textContent='He got you';$('#sdNote').className='note bad';$('#sdNote').textContent='Two apples and he still made it to the door. Day not cleared.';$('#sdPrimary').textContent='Try again';}
   show('#sdcard');$('#sdPrimary').focus();}
 
@@ -1090,14 +1092,15 @@ function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0
 
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
-function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const L=LEVELS[D.spot];const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
-  const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}`;
-  b.innerHTML=`<span class="no">Day ${i+1} · ${L.where}</span><span class="nm">${L.name}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${D.target?(cleared[dayKey(i)]?'Cleared':`Score ${D.target.toLocaleString()}, then face the driver`):'Final day'}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
-  if(un)b.addEventListener('click',()=>startRound(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
+function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
+  const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}`;const last=i===DAYS.length-1;
+  b.innerHTML=`<span class="no">Day ${i+1} · garden, treehouse, overpass, rooftop</span><span class="nm">Day ${i+1}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${cleared[dayKey(i)]?'Cleared':`${D.target.toLocaleString()} over four spots${last?'':', then face the driver'}`}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
+  if(un)b.addEventListener('click',()=>startRound(i,0));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
 function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard'])$(s).hidden=s!==id;}
-function startRound(i){
-  initAudio();endShowdown();dayIdx=i;DAY=DAYS[i];if(DAY.spot!==levelIdx)loadLevel(DAY.spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
-  $('#spotname').textContent=`Day ${i+1} · ${LV.name}`;
+function startRound(i,step){
+  initAudio();endShowdown();dayIdx=i;DAY=DAYS[i];if(step==null)step=spotStep;if(step===0)dayScores=[0,0,0,0];spotStep=step;pendingShowdown=false;
+  const spot=SPOT_ORDER[step];if(spot!==levelIdx)loadLevel(spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
+  $('#spotname').textContent=`Day ${i+1} · ${step+1}/4 ${LV.name}`;
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').style.opacity=1;
   cyberTimes=[rnd(6,18),rnd(28,44)];cyberN=0;
   look.yaw=LV.yaw;look.pitch=LV.pitch;state='play';show(null);$('#hud').hidden=false;crossEl.hidden=false;held.visible=true;setAmmo(ammo);updateHUD(true);store.set('last',i);
@@ -1105,19 +1108,27 @@ function startRound(i){
 function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;renderSpots();}
 function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
-function pause(){if(state!=='play')return;state='paused';charging=false;show('#pause');}
-function resume(){if(state!=='paused')return;state='play';show(null);}
+let pausedFrom='play';
+function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;show('#pause');}
+function resume(){if(state!=='paused')return;state=pausedFrom;show(null);}
 function endRound(){
   state='over';charging=false;held.visible=false;crossEl.hidden=true;
-  const key=dayKey(dayIdx),target=DAY.target,last=dayIdx+1>=DAYS.length;
-  const prev=best[key]||0;const isBest=score>prev;if(isBest){best[key]=score;store.set('best',best);}
-  const met=!!target&&score>=target;const nowUn=!last&&unlocked(dayIdx+1);pendingShowdown=met&&!last&&!cleared[key];
-  $('#overSpot').textContent=`Day ${dayIdx+1} · ${LV.name}`;$('#overTitle').textContent=pendingShowdown?'Target hit!':(met?`Day ${dayIdx+1} cleared`:(last&&hits?'Final day done':(hits?'Out of time':'Not a single car')));
-  $('#overScore').textContent=score.toLocaleString();$('#stHits').textContent=hits;$('#stOff').textContent=offroads;$('#stAcc').textContent=(throws?Math.round(hits/throws*100):0)+'%';$('#stCombo').textContent=bestCombo;$('#stBest').textContent=(best[key]||0).toLocaleString();
-  $('#stTarget').textContent=target?Math.max(0,target-(best[key]||0)).toLocaleString():'Done';
+  const key=dayKey(dayIdx),target=DAY.target,lastDay=dayIdx+1>=DAYS.length,lastSpot=spotStep===SPOT_ORDER.length-1;
+  dayScores[spotStep]=score;const total=dayTotal();const met=total>=target;
+  let isBest=false;if(lastSpot){const prev=best[key]||0;isBest=total>prev;if(isBest){best[key]=total;store.set('best',best);}}
+  pendingShowdown=lastSpot&&met&&!lastDay&&!cleared[key];const nowUn=lastSpot&&met&&!lastDay&&!!cleared[key];
+  $('#overSpot').textContent=`Day ${dayIdx+1} · ${spotStep+1}/4 ${LV.name}`;
+  $('#overTitle').textContent=pendingShowdown?'Target hit!':(lastSpot?(met?(lastDay?'Day 7 cleared. You win.':`Day ${dayIdx+1} cleared`):`Day ${dayIdx+1} not cleared`):(hits?'Out of time':'Not a single car'));
+  $('#overScore').textContent=score.toLocaleString();$('#stHits').textContent=hits;$('#stOff').textContent=offroads;$('#stAcc').textContent=(throws?Math.round(hits/throws*100):0)+'%';$('#stCombo').textContent=bestCombo;$('#stBest').textContent=total.toLocaleString();
+  $('#stTarget').textContent=Math.max(0,target-total).toLocaleString();
   const note=$('#overNote');note.className='note';
-  if(pendingShowdown)note.textContent='Uh oh. Someone just pulled into your driveway, and there is an apple on their windshield.';else if(isBest)note.textContent='New personal best.';else if(target&&!met){note.className='note bad';note.textContent=`Score ${target.toLocaleString()} to bring out the driver. Far hits, windshields and streaks pay the most.`;}else{note.className='note bad';note.textContent='Keep the streak going: every hit in a row adds to the multiplier.';}
-  $('#nextBtn').textContent=pendingShowdown?'Go home':'Next day';$('#nextBtn').hidden=!(nowUn||pendingShowdown);show('#over');(pendingShowdown?$('#nextBtn'):$('#againBtn')).focus();
+  if(pendingShowdown)note.textContent=`Day total ${total.toLocaleString()}. Uh oh: someone just pulled into your driveway, and there is an apple on their windshield.`;
+  else if(!lastSpot)note.textContent=`Day total ${total.toLocaleString()} of ${target.toLocaleString()}. ${SPOT_ORDER.length-1-spotStep} spot${SPOT_ORDER.length-1-spotStep===1?'':'s'} to go. Throw again to replay this one.`;
+  else if(met&&lastDay)note.textContent=`Day total ${total.toLocaleString()}. Seven days, every spot, every driver. Go wash the car.`;
+  else if(met)note.textContent=`Day total ${total.toLocaleString()}. Day ${dayIdx+2} unlocked. Cars get faster and fewer.`;
+  else{note.className='note bad';note.textContent=`Day total ${total.toLocaleString()} of ${target.toLocaleString()}. Throw again to replay this spot, or replay the day. Far hits, windshields and streaks pay the most.`;}
+  const nb=$('#nextBtn');nb.textContent=pendingShowdown?'Go home':(!lastSpot?'Next spot':(nowUn?'Next day':(met?'Choose day':'Replay day')));nb.hidden=lastSpot&&met&&lastDay;
+  show('#over');(pendingShowdown||!lastSpot?nb:$('#againBtn')).focus();
 }
 
 /* ---------------- input ---------------- */
@@ -1130,7 +1141,7 @@ let spaceDown=false;
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k==='e'&&state==='play')setAmmo(ammo==='apple'?'egg':'apple');
   else if(k==='m')setMute(!muted);
-  else if(k==='p'||k==='escape'){if(state==='play')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
+  else if(k==='p'||k==='escape'){if(state==='play'||state==='showdown')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
   else if((k==='enter'||k===' ')&&state==='menu'&&!$('#title').hidden){e.preventDefault();initAudio();toMenu();}
   else if(k===' '&&state==='play'){e.preventDefault();if(!spaceDown){spaceDown=true;pointerDown=true;if(reload<=0){charging=true;power=0;}}}});
 window.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;release();}});
@@ -1139,8 +1150,8 @@ $('#muteBtn').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#pauseBtn').addEventListener('click',pause);
 $('#resumeBtn').addEventListener('click',resume);
 $('#quitBtn').addEventListener('click',toMenu);
-$('#againBtn').addEventListener('click',()=>startRound(dayIdx));
-$('#nextBtn').addEventListener('click',()=>{if(pendingShowdown)startShowdown();else startRound(dayIdx+1);});
+$('#againBtn').addEventListener('click',()=>startRound(dayIdx,spotStep));
+$('#nextBtn').addEventListener('click',()=>{const lastSpot=spotStep===SPOT_ORDER.length-1,met=dayTotal()>=DAY.target;if(pendingShowdown)startShowdown();else if(!lastSpot)startRound(dayIdx,spotStep+1);else if(met&&cleared[dayKey(dayIdx)]&&dayIdx+1<DAYS.length)startRound(dayIdx+1,0);else if(met)toMenu();else startRound(dayIdx,0);});
 $('#menuBtn').addEventListener('click',toMenu);
 $('#startBtn').addEventListener('click',e=>{e.stopPropagation();initAudio();toMenu();});
 $('#title').addEventListener('click',e=>{if(e.target.closest('button'))return;initAudio();toMenu();});
@@ -1151,7 +1162,7 @@ $('#optAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple')
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>show(optFrom));
 $('#backBtn').addEventListener('click',toTitle);
-$('#sdPrimary').addEventListener('click',()=>{if(cleared[dayKey(dayIdx)])startRound(dayIdx+1);else startShowdown();});
+$('#sdPrimary').addEventListener('click',()=>{if(cleared[dayKey(dayIdx)])startRound(dayIdx+1,0);else startShowdown();});
 $('#sdMenu').addEventListener('click',toMenu);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 window.addEventListener('blur',pause);
@@ -1196,7 +1207,7 @@ function frame(t){
 /* ---------------- boot ---------------- */
 setMute(muted);setAmmo('apple');
 const startIdx=clamp(store.get('last',0)|0,0,DAYS.length-1);
-dayIdx=unlocked(startIdx)?startIdx:0;DAY=DAYS[dayIdx];loadLevel(DAY.spot);
+dayIdx=unlocked(startIdx)?startIdx:0;DAY=DAYS[dayIdx];loadLevel(0);
 renderSpots();show('#title');
 requestAnimationFrame(frame);
 })();
