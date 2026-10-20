@@ -61,6 +61,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 /* options */
 .orow{display:flex;align-items:center;justify-content:space-between;gap:12px;font:600 16px/1.2 var(--f-body)}
 .orow .btn{min-width:110px;text-align:center}
+.orow .dim{color:var(--dim);font-weight:600}
 .lede{margin:0;max-width:52ch;font:500 17px/1.5 var(--f-body);color:var(--muted)}
 .spots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.spots{grid-template-columns:1fr}}
@@ -102,12 +103,12 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   padding-top:max(14px,env(safe-area-inset-top,0px));padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px))}
 /* Timer owns the centre column; the score can grow to six digits without pushing it around. On narrow phones the buttons drop to a second row. */
 .score-box{justify-self:start}.timer{justify-self:center;text-align:center}.hud-btns{justify-self:end}
-@media (max-width:600px){
-  .hud-btns{grid-column:1/-1;justify-self:end}
-  .num{font-size:clamp(26px,9vw,40px)}
-  .hbtn{height:34px;min-width:34px;padding:0 10px;font-size:12px}
-  .combo{font-size:14px;padding:4px 8px}
-  .timer .lbl{font-size:10px;letter-spacing:.12em}
+@media (max-width:600px){/* scoped under #hud so these beat the generic .num/.combo rules declared later */
+  #hud .num{font-size:clamp(24px,8vw,40px)}
+  #hud .timer{max-width:30vw}
+  #hud .hbtn{height:34px;min-width:34px;padding:0 10px;font-size:12px}
+  #hud .combo{font-size:14px;padding:4px 8px}
+  #hud .timer .lbl{font-size:10px;letter-spacing:.1em;white-space:normal;max-width:30vw}
 }
 .lbl{font:700 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:rgba(255,255,255,.75);text-shadow:0 1px 3px rgba(0,0,0,.6)}
 .num{font:700 46px/1 var(--f-num);font-variant-numeric:tabular-nums;text-shadow:0 2px 10px rgba(0,0,0,.55);white-space:nowrap}
@@ -168,11 +169,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
       <div id="time" class="num">60</div>
       <div class="lbl" id="spotname">Front Garden</div>
     </div>
-    <div class="hud-btns">
-      <button class="hbtn" id="ammoBtn" title="Switch ammo (E)"><span class="ammo-dot" id="ammoDot"></span><span id="ammoTxt">Apples</span></button>
-      <button class="hbtn" id="muteBtn" title="Sound (M)">Sound on</button>
-      <button class="hbtn" id="pauseBtn" title="Pause (P)">Pause</button>
-    </div>
+    <div class="hud-btns"><button class="hbtn" id="menuHudBtn" title="Menu (P)">Menu</button></div>
   </div>
   <div id="hint">Hold to wind up, release to throw. Hit the windshield to make them swerve.</div>
   <div id="power"><div id="powerFill"></div></div>
@@ -235,9 +232,11 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <div id="pause" class="screen center" hidden>
   <div class="card">
     <h2>Paused</h2>
+    <div class="orow" id="pauseAmmoRow"><span>Ammo <small class="dim">(E)</small></span><button class="btn" id="pauseAmmo">Apples</button></div>
+    <div class="orow"><span>Sound <small class="dim">(M)</small></span><button class="btn" id="pauseSound">On</button></div>
     <div class="row">
-      <button class="btn primary" id="resumeBtn">Resume</button>
-      <button class="btn" id="quitBtn">Choose spot</button>
+      <button class="btn primary" id="resumeBtn">Resume game</button>
+      <button class="btn" id="quitBtn">Choose day</button>
     </div>
   </div>
 </div>
@@ -1087,8 +1086,8 @@ function updateHUD(force){
   if(force||hudCache.t!==t){const el=$('#time');el.textContent=t;el.classList.toggle('low',t<=10&&state==='play');hudCache.t=t;}
   const mult=Math.min(4,1+.5*Math.max(0,combo-1));const ct=combo>1?`x${mult.toFixed(1).replace('.0','')} streak · ${combo}`:'No streak';if(force||hudCache.ct!==ct){const el=$('#combo');el.textContent=ct;el.classList.toggle('hot',combo>1);hudCache.ct=ct;}
 }
-function setAmmo(a){ammo=a;$('#ammoTxt').textContent=a==='apple'?'Apples':'Eggs';$('#optAmmo').textContent=a==='apple'?'Apples':'Eggs';$('#ammoDot').className='ammo-dot'+(a==='egg'?' egg':'');heldApple.visible=a==='apple';heldEgg.visible=a==='egg';}
-function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#muteBtn').textContent=m?'Sound off':'Sound on';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
+function setAmmo(a){ammo=a;$('#optAmmo').textContent=$('#pauseAmmo').textContent=a==='apple'?'Apples':'Eggs';heldApple.visible=a==='apple';heldEgg.visible=a==='egg';}
+function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
@@ -1109,7 +1108,7 @@ function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true
 function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 let pausedFrom='play';
-function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;show('#pause');}
+function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;$('#pauseAmmoRow').hidden=pausedFrom==='showdown';show('#pause');}
 function resume(){if(state!=='paused')return;state=pausedFrom;show(null);}
 function endRound(){
   state='over';charging=false;held.visible=false;crossEl.hidden=true;
@@ -1145,9 +1144,9 @@ window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   else if((k==='enter'||k===' ')&&state==='menu'&&!$('#title').hidden){e.preventDefault();initAudio();toMenu();}
   else if(k===' '&&state==='play'){e.preventDefault();if(!spaceDown){spaceDown=true;pointerDown=true;if(reload<=0){charging=true;power=0;}}}});
 window.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;release();}});
-$('#ammoBtn').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
-$('#muteBtn').addEventListener('click',()=>{initAudio();setMute(!muted);});
-$('#pauseBtn').addEventListener('click',pause);
+$('#menuHudBtn').addEventListener('click',pause);
+$('#pauseAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
+$('#pauseSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#resumeBtn').addEventListener('click',resume);
 $('#quitBtn').addEventListener('click',toMenu);
 $('#againBtn').addEventListener('click',()=>startRound(dayIdx,spotStep));
