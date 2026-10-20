@@ -153,6 +153,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 #cross{position:fixed;left:0;top:0;width:34px;height:34px;margin:-17px 0 0 -17px;pointer-events:none;border-radius:50%;border:2px solid rgba(255,255,255,.85);box-shadow:0 0 0 1px rgba(0,0,0,.35),inset 0 0 0 1px rgba(0,0,0,.25)}
 #cross::after{content:"";position:absolute;left:50%;top:50%;width:4px;height:4px;margin:-2px 0 0 -2px;border-radius:50%;background:#fff}
 #cross.charging{border-color:var(--gold)}
+#cross.onws{border-color:#6dff7a;box-shadow:0 0 0 1px rgba(0,0,0,.35),0 0 14px rgba(109,255,122,.85)}
+#cross.onws::after{background:#6dff7a}
 #banner{position:fixed;left:50%;top:30%;transform:translate(-50%,-50%);pointer-events:none;font:400 clamp(30px,6vw,60px)/1 var(--f-display);color:var(--gold);
   text-shadow:0 3px 0 #5b3c00,0 8px 24px rgba(0,0,0,.5);opacity:0;white-space:nowrap}
 #banner.show{animation:ban 1.1s ease-out}
@@ -225,7 +227,9 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     <div id="spots" class="spots"></div>
     <ul class="keys">
       <li><b>Aim</b>mouse or finger</li>
-      <li><b>Hold, release</b>throw</li>
+      <li><b>Hold, release</b>throw (mouse)</li>
+      <li><b>Swipe up</b>throw (touch)</li>
+      <li><b>Two fingers</b>look around</li>
       <li><b>E</b>apples, eggs or corn</li>
       <li><b>P</b>pause</li>
     </ul>
@@ -238,6 +242,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     <h2>Options</h2>
     <div class="orow"><span>Sound</span><button class="btn" id="optSound">On</button></div>
     <div class="orow"><span>Ammo</span><button class="btn" id="optAmmo">Apples</button></div>
+    <div class="orow"><span>Aim help <small class="dim">(landing marker)</small></span><button class="btn" id="optAssist">On</button></div>
     <div class="orow"><span>Best scores</span><button class="btn" id="optReset">Reset</button></div>
     <ul class="keys">
       <li><b>Hold, release</b>throw harder the longer you hold</li>
@@ -940,7 +945,7 @@ function loadLevel(i){
   renderer.toneMappingExposure=LV.exposure;
   M.head().emissiveIntensity=LV.night?2.6:.35;M.tail().emissiveIntensity=LV.night?1.8:.5;
   LV.build(scene,R,LV);
-  scene.add(camera);scene.add(dots);
+  scene.add(camera);scene.add(dots);scene.add(landMark,hitMark,landDot);
   LV.lanes=LV.road.lanes.map(l=>({off:l.off,dir:l.dir,timer:rnd(0,2)}));
   look.yaw=LV.yaw;look.pitch=LV.pitch;camera.position.copy(cam);
   resetWorld();prepopulate();setAmbient(LV.ambient);
@@ -1034,7 +1039,30 @@ function doThrow(){
   if(state==='showdown'){SD.apples--;$('#sdApples').textContent=SD.apples;}
   if(hintShown&&throws>=2){hintShown=false;$('#hint').style.opacity=0;}
 }
+// Aim help: fly the current throw forward against where each car will be (cars keep their speed), and show
+// a ring where it lands or a glow on the car where it hits: green on the windshield, amber anywhere else.
+const ringTex=()=>cached('ring',()=>canvasTex(128,128,(g)=>{g.strokeStyle='#ffffff';g.lineWidth=9;g.beginPath();g.arc(64,64,52,0,6.3);g.stroke();g.lineWidth=4;g.beginPath();g.arc(64,64,22,0,6.3);g.stroke();}));
+const landMark=new THREE.Mesh(new THREE.PlaneGeometry(1,1).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({map:ringTex(),transparent:true,depthWrite:false,opacity:.85,fog:false,polygonOffset:true,polygonOffsetFactor:-6}));landMark.visible=false;landMark.renderOrder=5;
+const hitMark=new THREE.Sprite(new THREE.SpriteMaterial({map:cached('target2',()=>canvasTex(128,128,(g)=>{g.lineWidth=16;g.strokeStyle='rgba(0,0,0,.55)';g.beginPath();g.arc(64,64,44,0,6.3);g.stroke();g.lineWidth=9;g.strokeStyle='#ffffff';g.beginPath();g.arc(64,64,44,0,6.3);g.stroke();g.fillStyle='rgba(0,0,0,.55)';g.beginPath();g.arc(64,64,13,0,6.3);g.fill();g.fillStyle='#ffffff';g.beginPath();g.arc(64,64,9,0,6.3);g.fill();})),color:0x6dff7a,transparent:true,depthWrite:false,depthTest:false,fog:false}));hitMark.visible=false;hitMark.renderOrder=6;
+const targetTex=()=>cached('target',()=>canvasTex(128,128,(g)=>{g.lineWidth=16;g.strokeStyle='rgba(0,0,0,.55)';g.beginPath();g.arc(64,64,44,0,6.3);g.stroke();g.lineWidth=9;g.strokeStyle='#ffffff';g.beginPath();g.arc(64,64,44,0,6.3);g.stroke();g.fillStyle='rgba(0,0,0,.55)';g.beginPath();g.arc(64,64,13,0,6.3);g.fill();g.fillStyle='#ffffff';g.beginPath();g.arc(64,64,9,0,6.3);g.fill();}));
+const landDot=new THREE.Sprite(new THREE.SpriteMaterial({map:targetTex(),color:0xffd24a,transparent:true,depthWrite:false,depthTest:false,fog:false}));landDot.visible=false;landDot.renderOrder=6;
+let assist=store.get('assist',true);
+function predictThrow(){
+  const o=throwOrigin(),v=aimDir(o).multiplyScalar(throwSpeed()),p=o.clone(),q=new V3();const dt=.02;
+  const cars=world.cars.map(c=>({c,vel:c.crashed?c.vel.clone():new V3(Math.cos(c.group.rotation.y),0,-Math.sin(c.group.rotation.y)).multiplyScalar(c.speed)}));
+  if(state==='showdown'&&SD.car)cars.push({c:SD.car,vel:new V3()});
+  for(let i=1;i<=220;i++){const t=i*dt;v.y-=G*dt;p.addScaledVector(v,dt);
+    for(const k of cars){q.copy(p).addScaledVector(k.vel,-t);const lp=hitTest(k.c,q);if(lp)return{car:k.c,lp,ws:!k.c.crashed&&isWindshield(k.c,lp)};}
+    const gy=LV.groundAt(p.x,p.z);if(p.y<=gy)return{ground:p.clone().setY(gy)};}
+  return null;}
+function updateAimHelp(on){
+  landMark.visible=false;hitMark.visible=false;landDot.visible=false;let ws=false;
+  if(on&&assist){const r=predictThrow();
+    if(r&&r.ground){landMark.position.copy(r.ground);landMark.position.y+=.03;const s=clamp(r.ground.distanceTo(camera.position)/14,.7,4.5);landMark.scale.set(s,1,s);landMark.visible=true;landDot.position.copy(r.ground);landDot.position.y+=.15;const ds=r.ground.distanceTo(camera.position)*.12;landDot.scale.set(ds,ds,1);landDot.visible=true;}
+    else if(r&&r.car){const w=r.car.group.localToWorld(r.lp.clone());hitMark.position.copy(w);const s=w.distanceTo(camera.position)*.12*(r.ws?1.25:1);hitMark.scale.set(s,s,1);hitMark.material.color.set(r.ws?0x6dff7a:0xffb340);hitMark.visible=true;ws=r.ws;}}
+  crossEl.classList.toggle('onws',ws);}
 function updatePreview(){
+  updateAimHelp((state==='play'||state==='showdown')&&charging);
   if(!((state==='play'||state==='showdown')&&charging)){dots.count=0;return;}
   const o=throwOrigin(),v=aimDir(o).multiplyScalar(throwSpeed()),p=o.clone();const dm=new THREE.Object3D();let n=0;const dt=.045;
   for(let i=0;i<30;i++){v.y-=G*dt;p.addScaledVector(v,dt);if(i%1===0&&i>1){const k=1-i/30;dm.position.copy(p);const s=lerp(.6,2.2,Math.min(1,p.distanceTo(camera.position)/30))*k;dm.scale.setScalar(Math.max(.15,s));dm.updateMatrix();dots.setMatrixAt(n++,dm.matrix);}
@@ -1242,7 +1270,8 @@ function prefAmmo(){const a=store.get('ammo','apple');return AMMO.includes(a)?a:
 function nextAmmo(){return AMMO[(AMMO.indexOf(ammo)+1)%AMMO.length];}
 const HINTS={apple:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',egg:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',corn:'Corn is heavy: it flies slower, but every hit is worth 50% more. Hit the windshield to make them swerve.'};
 let hintTimer=0;
-function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=HINTS[a];if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
+function hintFor(a){return touchMode?(a==='corn'?'Corn: slower, 50% more points. ':'')+'Swipe toward a car and let go. Two fingers to look around.':HINTS[a];}
+function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=hintFor(a);if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
 function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
@@ -1258,7 +1287,7 @@ function startRound(i,step,opts){
   initAudio();endShowdown();if(step==null)step=spotStep;if(i!==dayIdx||(step===0&&opts&&opts.fresh)){dayScores=[0,0,0,0];furthestStep=0;}dayIdx=i;DAY=DAYS[i];spotStep=step;furthestStep=Math.max(furthestStep,step);pendingShowdown=false;saveProg();
   const spot=SPOT_ORDER[step];if(spot!==levelIdx)loadLevel(spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   $('#spotname').textContent=`Day ${i+1} · ${step+1}/4 ${LV.name}`;
-  score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').textContent=HINTS[prefAmmo()];$('#hint').style.opacity=1;
+  score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').textContent=hintFor(prefAmmo());pan.x=pan.y=0;$('#hint').style.opacity=1;
   // A random handful of special cars each round, spaced through the minute (not every special every round).
   specialTimes={};specialN={};const sk=Object.keys(SPECIALS).sort(()=>Math.random()-.5).slice(0,SPECIALS_PER_ROUND);const slot=46/sk.length;sk.forEach((k,j)=>{specialTimes[k]=[5+j*slot+rnd(0,slot*.7)];});
   goal=goalFor(i,step);goalHit=false;
@@ -1293,10 +1322,36 @@ function endRound(){
 
 /* ---------------- input ---------------- */
 function setAim(e){let x=e.clientX,y=e.clientY;if(e.pointerType==='touch')y-=70;aim.sx=x;aim.sy=y;aim.nx=clamp(x/innerWidth*2-1,-1,1);aim.ny=clamp(-(y/innerHeight*2-1),-1,1);crossEl.style.transform=`translate(${x}px,${y}px)`;}
-canvas.addEventListener('pointermove',setAim);
-canvas.addEventListener('pointerdown',e=>{if(state!=='play'&&state!=='showdown')return;initAudio();setAim(e);try{canvas.setPointerCapture(e.pointerId);}catch(_){}pointerDown=true;if(reload<=0){charging=true;power=0;}});
+// Mouse: hold to wind up, release to throw, and the view follows the cursor.
+// Touch: swipe toward the car and let go. Swipe length and speed set the power; the view stays put while you aim,
+// and a two-finger drag looks around.
+const touches=new Map(),pan={x:0,y:0},swipe={active:false,id:null,x0:0,y0:0,samples:[]};
+let touchMode=matchMedia('(pointer: coarse)').matches;
+function swipePower(now){const H=innerHeight,sm=swipe.samples;if(!sm.length)return 0;const last=sm[sm.length-1];const len=Math.hypot(last.x-swipe.x0,last.y-swipe.y0);let peak=0;
+  for(let i=1;i<sm.length;i++){if(now-sm[i].t>250)continue;const d=Math.max(8,sm[i].t-sm[i-1].t);peak=Math.max(peak,Math.hypot(sm[i].x-sm[i-1].x,sm[i].y-sm[i-1].y)/d*1000);}
+  return clamp(.6*len/(.45*H)+.4*peak/(1.8*H),0,1);}
+function endSwipe(){swipe.active=false;pointerDown=false;charging=false;power=0;}
+canvas.addEventListener('pointermove',e=>{
+  if(e.pointerType!=='touch'){setAim(e);return;}
+  if(!touches.has(e.pointerId))return;
+  if(touches.size>=2){const a=[...touches.values()];const mx0=(a[0].x+a[1].x)/2,my0=(a[0].y+a[1].y)/2;touches.set(e.pointerId,{x:e.clientX,y:e.clientY});const b=[...touches.values()];const mx1=(b[0].x+b[1].x)/2,my1=(b[0].y+b[1].y)/2;
+    pan.x=clamp(pan.x+(mx1-mx0)/innerWidth*1.1,-.7,.7);pan.y=clamp(pan.y+(my1-my0)/innerHeight*.6,-.25,.25);return;}
+  touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+  if(swipe.active&&e.pointerId===swipe.id){setAim(e);const now=performance.now();swipe.samples.push({x:e.clientX,y:e.clientY,t:now});if(swipe.samples.length>40)swipe.samples.shift();power=swipePower(now);}});
+canvas.addEventListener('pointerdown',e=>{
+  if(e.pointerType==='touch'){const wasMouse=!touchMode;touchMode=true;if(wasMouse&&state==='play')$('#hint').textContent=hintFor(ammo);touches.set(e.pointerId,{x:e.clientX,y:e.clientY});
+    if(state!=='play'&&state!=='showdown')return;initAudio();try{canvas.setPointerCapture(e.pointerId);}catch(_){}
+    if(touches.size>=2){endSwipe();return;}
+    setAim(e);swipe.active=true;swipe.id=e.pointerId;swipe.x0=e.clientX;swipe.y0=e.clientY;swipe.samples=[{x:e.clientX,y:e.clientY,t:performance.now()}];pointerDown=true;power=0;if(reload<=0)charging=true;return;}
+  touchMode=false;if(state!=='play'&&state!=='showdown')return;initAudio();setAim(e);try{canvas.setPointerCapture(e.pointerId);}catch(_){}pointerDown=true;if(reload<=0){charging=true;power=0;}});
 const release=()=>{if(!pointerDown)return;pointerDown=false;if(charging){charging=false;doThrow();}};
-window.addEventListener('pointerup',release);window.addEventListener('pointercancel',()=>{pointerDown=false;charging=false;});
+window.addEventListener('pointerup',e=>{
+  if(e.pointerType==='touch'){touches.delete(e.pointerId);
+    if(swipe.active&&e.pointerId===swipe.id){const now=performance.now();swipe.samples.push({x:e.clientX,y:e.clientY,t:now});const len=Math.hypot(e.clientX-swipe.x0,e.clientY-swipe.y0);
+      if(len>=30&&charging&&reload<=0){power=swipePower(now);swipe.active=false;pointerDown=false;charging=false;doThrow();}else endSwipe();}
+    return;}
+  release();});
+window.addEventListener('pointercancel',e=>{touches.delete(e.pointerId);endSwipe();});
 let spaceDown=false;
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k==='e'&&state==='play'){setAmmo(nextAmmo());store.set('ammo',ammo);}
@@ -1318,6 +1373,8 @@ $('#title').addEventListener('click',e=>{if(e.target.closest('button'))return;in
 $('#titleSound').addEventListener('click',e=>{e.stopPropagation();initAudio();setMute(!muted);});
 $('#optBtn').addEventListener('click',e=>{e.stopPropagation();openOptions('#title');});
 $('#optSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
+$('#optAssist').textContent=assist?'On':'Off';
+$('#optAssist').addEventListener('click',()=>{assist=!assist;store.set('assist',assist);$('#optAssist').textContent=assist?'On':'Off';});
 $('#optAmmo').addEventListener('click',()=>{setAmmo(nextAmmo());store.set('ammo',ammo);});
 document.querySelectorAll('.ammo-opt').forEach(b=>b.addEventListener('click',()=>{setAmmo(b.dataset.ammo);store.set('ammo',ammo);}));
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
@@ -1339,20 +1396,21 @@ function frame(t){
   clock+=dt;
   // camera
   const play=state==='play',sd=state==='showdown'||state==='sdover',aimOn=play||state==='showdown';const V=sd?SD:LV;
-  const ty=V.yaw-(aimOn?aim.nx*.36:0)+(aimOn?0:Math.sin(clock*.12)*.07);
-  const tp=V.pitch+(aimOn?aim.ny*.15:Math.sin(clock*.17)*.015);
+  const follow=aimOn&&!touchMode;
+  const ty=V.yaw-(follow?aim.nx*.36:0)+(aimOn&&touchMode?pan.x:0)+(aimOn?0:Math.sin(clock*.12)*.07);
+  const tp=V.pitch+(follow?aim.ny*.15:0)+(aimOn&&touchMode?pan.y:0)+(aimOn?0:Math.sin(clock*.17)*.015);
   look.yaw+=(ty-look.yaw)*Math.min(1,dt*(aimOn?5:1.2));look.pitch+=(tp-look.pitch)*Math.min(1,dt*(aimOn?5:1.2));
   shake=Math.max(0,shake-dt*1.6);const sk=reduceMotion?0:shake*shake*.03;
   camera.position.set(V.cam[0],V.cam[1]+Math.sin(clock*1.3)*.01,V.cam[2]);
   camera.rotation.set(look.pitch+rnd(-sk,sk),look.yaw+rnd(-sk,sk),0);
   // round timer
   if(play){elapsed+=dt;timeLeft-=dt;reload=Math.max(0,reload-dt);
-    if(pointerDown&&!charging&&reload<=0){charging=true;power=0;}
-    if(charging)power=Math.min(1,power+dt/1.0);
+    if(pointerDown&&!charging&&reload<=0){charging=true;if(!touchMode)power=0;}
+    if(charging&&!touchMode)power=Math.min(1,power+dt/1.0);
     if(timeLeft<=10&&Math.ceil(timeLeft)!==lastTick){lastTick=Math.ceil(timeLeft);if(lastTick>0)SFX.tick();}
     if(timeLeft<=0&&overT<0){overT=1.3;charging=false;timeLeft=0;}
     updateHUD();}
-  if(state==='showdown'){reload=Math.max(0,reload-dt);const can=SD.apples>0&&SD.phase>=2;if(pointerDown&&!charging&&reload<=0&&can){charging=true;power=0;}if(charging)power=Math.min(1,power+dt/1.0);updateShowdown(dt);}
+  if(state==='showdown'){reload=Math.max(0,reload-dt);const can=SD.apples>0&&SD.phase>=2;if(pointerDown&&!charging&&reload<=0&&can){charging=true;if(!touchMode)power=0;}if(charging&&!touchMode)power=Math.min(1,power+dt/1.0);updateShowdown(dt);}
   if(overT>0){overT-=dt;if(overT<=0)endRound();}
   updateTraffic(dt);updateApples(dt);updateParts(dt);updatePreview();updatePops(dt);
   // held item
