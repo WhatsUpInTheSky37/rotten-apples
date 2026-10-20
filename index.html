@@ -438,8 +438,9 @@ const LEVELS=[
   lookS:-15,lookY:.7,speed:[8,13],spawn:[3.2,6.2],leftChance:.25,types:{sedan:4,hatch:3,suv:3,pickup:1,sports:1,camaro:1,ram:1},
   sky:{top:'#4a82cf',horizon:'#d6e4ee',bottom:'#76845e',sun:[-.62,.55,.42],sunColor:'#fff0d4',cloud:.5},sunI:2.4,hemi:['#cfe0ff','#5a6a3e',.35],fog:['#cddbe5',70,620],exposure:.95,night:false,ambient:'birds',build:buildGarden},
  {id:'tree',name:'The Treehouse',where:'Route 9 farm road',blurb:'Five metres up in the oak. Cars come over the rise faster.',target:3500,
-  cam:[0,5.5,0],road:{p0:[0,-26],u:[-.85,.53],width:7,sMin:-420,sMax:50,visMin:-900,lanes:[{off:1.75,dir:1},{off:-1.75,dir:-1}],marks:[{o:0,t:'ydash'},{o:-3.35,t:'solid'},{o:3.35,t:'solid'}]},
-  lookS:-15,lookY:0,speed:[14,20],spawn:[2.8,5.4],leftChance:.3,types:{sedan:3,hatch:2,suv:3,pickup:3,sports:1,camaro:1,ram:3},
+  // The oak stands about 10m back from an 8m farm road, so the road fills the lower half of the view even in portrait.
+  cam:[0,5.5,0],road:{p0:[0,-12.4],u:[-.85,.53],width:8,sMin:-420,sMax:50,visMin:-900,lanes:[{off:2,dir:1},{off:-2,dir:-1}],marks:[{o:0,t:'ydash'},{o:-3.8,t:'solid'},{o:3.8,t:'solid'}]},
+  lookS:-11,lookY:0,speed:[14,20],spawn:[2.8,5.4],leftChance:.3,types:{sedan:3,hatch:2,suv:3,pickup:3,sports:1,camaro:1,ram:3},
   sky:{top:'#5a83c2',horizon:'#f1c892',bottom:'#6d5e3a',sun:[.68,.16,-.62],sunColor:'#ffc283',cloud:.45},sunI:2.2,hemi:['#c3d2ef','#6b5a36',.35],fog:['#e6c9a3',90,900],exposure:1.0,night:false,ambient:'birds',build:buildTree},
  {id:'bridge',name:'Highway Overpass',where:'Exit 14, Orchard Road',blurb:'Six lanes of traffic straight at you. Lead hard or miss.',target:5000,
   // Camera leans on the parapet looking down the carriageway, so the six lanes fill the bottom of the screen and converge to the horizon.
@@ -505,20 +506,21 @@ function buildTree(sc,R,L){
   for(let i=0;i<14;i++){const p=R.point(rnd(-130,-10),rnd(-70,-26));const hb=mesh(new THREE.CylinderGeometry(.75,.75,1.3,18),M.straw());hb.rotation.z=Math.PI/2;hb.rotation.y=Math.random()*3;hb.position.set(p.x,.75,p.z);sc.add(hb);}
   const trees=[];
   roadsideTrees(R,trees,12,40,22,-700,R.sMax,s=>s>-140&&s<-30,{h0:9,h1:15,pine:.2});
-  roadsideTrees(R,trees,-40,-12,26,-700,R.sMax-30,null,{h0:9,h1:15,pine:.15});
+  roadsideTrees(R,trees,-40,-12,26,-700,R.sMax-30,s=>s>-25&&s<30,{h0:9,h1:15,pine:.15});
   for(let i=0;i<140;i++){const a=rnd(-1.2,1.9),r=rnd(220,560);trees.push({x:Math.sin(a)*r,z:-Math.cos(a)*r,h:rnd(10,18),kind:Math.random()<.45?'pine':'round'});}
   addTrees(sc,trees);
   hills(sc,'#7f8a62',14,520,820,-1.2,1.9,40,110);
   // the treehouse itself
-  const c=new V3(...L.cam);const plat=mesh(new THREE.BoxGeometry(3.4,.16,3.4),M.wood());plat.position.set(c.x,c.y-.95,c.z);plat.rotation.y=L.yaw;sc.add(plat);
-  const railP=camRel(L,1.05,0,c.y-.45);const rail=mesh(new THREE.BoxGeometry(3.2,.1,.1),M.wood());rail.position.copy(railP);rail.rotation.y=L.yaw;sc.add(rail);
-  for(const r of[-1.5,-.5,.5,1.5]){const p=camRel(L,1.05,r,c.y-.7);const po=mesh(new THREE.BoxGeometry(.08,.5,.08),M.wood());po.position.copy(p);sc.add(po);}
+  // Standing height: deck 1.5m below the eye and a hip-high rail, so the platform stays out of the lower half of the view.
+  const c=new V3(...L.cam);const plat=mesh(new THREE.BoxGeometry(3.4,.16,3.4),M.wood());plat.position.set(c.x,c.y-1.5,c.z);plat.rotation.y=L.yaw;sc.add(plat);
+  const railP=camRel(L,1.4,0,c.y-1.0);const rail=mesh(new THREE.BoxGeometry(3.2,.1,.1),M.wood());rail.position.copy(railP);rail.rotation.y=L.yaw;sc.add(rail);
+  for(const r of[-1.5,-.5,.5,1.5]){const p=camRel(L,1.4,r,c.y-1.25);const po=mesh(new THREE.BoxGeometry(.08,.5,.08),M.wood());po.position.copy(p);sc.add(po);}
   const tp=camRel(L,.4,-2.3,0);const trunk=mesh(new THREE.CylinderGeometry(.45,.7,13,10),M.trunk());trunk.position.set(tp.x,6.5,tp.z);sc.add(trunk);
   const branch=(f,r,y,len,rx,rz)=>{const b=mesh(new THREE.CylinderGeometry(.08,.16,len,7),M.trunk());b.position.copy(camRel(L,f,r,y));b.rotation.set(rx,L.yaw,rz);sc.add(b);};
   branch(1.6,-1.6,7.3,4,0,-1.1);branch(2.2,1.9,7.6,4,0.3,1.0);
   const crown=[[2.2,-3.2,8.4,1.7],[3.4,-1.7,9.0,1.5],[2.8,2.8,8.7,1.6],[1.4,3.6,7.4,1.3],[0,-2.6,9.4,2],[4,0,9.8,1.4]];
   crown.forEach(([f,r,y,s])=>{const b=bush(sc,camRel(L,f,r),s,[.27,.42,.2]);b.position.y=y;});
-  L.groundAt=(x,z)=>{const dx=x-c.x,dz=z-c.z;return dx*dx+dz*dz<2.6?c.y-.87:0;};
+  L.groundAt=(x,z)=>{const dx=x-c.x,dz=z-c.z;return dx*dx+dz*dz<2.6?c.y-1.42:0;};
 }
 function buildBridge(sc,R,L){
   ground(sc,grassTex('g3',[84,108,52]));buildRoad(sc,R);const W=R.W;
