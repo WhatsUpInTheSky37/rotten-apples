@@ -36,6 +36,29 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .screen>*{margin:auto}
 .menu-inner{width:min(640px,100%);display:flex;flex-direction:column;gap:16px}
 .mhead{display:flex;align-items:center;gap:14px}
+.mhead .grow{flex:1;min-width:0}
+input.tin{all:unset;box-sizing:border-box;flex:1;min-width:0;padding:10px 12px;border-radius:9px;background:rgba(255,255,255,.08);border:1px solid var(--line);font:600 15px/1.2 var(--f-body);color:var(--ink);-webkit-user-select:text;user-select:text}
+input.tin::placeholder{color:var(--dim)}
+input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
+.namerow{display:flex;gap:8px;align-items:center}
+.board{width:min(480px,100%)}
+.board .sub{margin:-6px 0 0;font:500 14px/1.4 var(--f-body);color:var(--muted)}
+.daytabs{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px}
+.daytabs button{all:unset;box-sizing:border-box;cursor:pointer;text-align:center;padding:8px 0;border-radius:8px;font:700 14px/1 var(--f-num);letter-spacing:.04em;color:var(--muted);background:rgba(255,255,255,.06);border:1px solid var(--line)}
+.daytabs button[aria-selected="true"]{background:var(--gold);border-color:var(--gold);color:#241a00}
+.daytabs button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
+.blist{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:4px;min-height:200px}
+.blist li{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;gap:10px;padding:8px 10px;border-radius:8px;background:rgba(255,255,255,.04);font:600 15px/1.2 var(--f-body)}
+.blist li .rk{font:700 15px/1 var(--f-num);color:var(--dim);text-align:center}
+.blist li:nth-child(1) .rk{color:var(--gold)}.blist li:nth-child(2) .rk{color:#d6dbe0}.blist li:nth-child(3) .rk{color:#d99a5c}
+.blist li .nm{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.blist li .sc{font:700 17px/1 var(--f-num);color:var(--ink);font-variant-numeric:tabular-nums}
+.blist li.me{background:rgba(244,196,67,.16);outline:1px solid rgba(244,196,67,.5)}
+.blist .empty{display:block;text-align:center;color:var(--muted);background:none;padding:28px 10px;font-weight:500}
+.post{display:flex;flex-direction:column;gap:8px;padding:12px;border-radius:10px;background:rgba(255,255,255,.05);border:1px solid var(--line)}
+.post .pnote{margin:0;font:600 14px/1.35 var(--f-body);color:var(--leaf)}
+.post .pnote.bad{color:var(--bad)}
+.btn.small{padding:8px 12px;font-size:13px}
 .mhead .h2{margin:0;font:400 clamp(24px,6vw,38px)/1 var(--f-display);color:var(--ink)}
 .eyebrow{margin:0;font:700 12px/1 var(--f-body);letter-spacing:.18em;text-transform:uppercase;color:var(--leaf)}
 /* title screen */
@@ -215,6 +238,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     <div class="bottom">
       <button class="start" id="startBtn">Tap to start</button>
       <div class="trow">
+        <button class="tbtn" id="titleBoard"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M7 3h10v2h4v3a5 5 0 0 1-4.6 5 5 5 0 0 1-3.4 2.8V18h3v3H8v-3h3v-2.2A5 5 0 0 1 7.6 13 5 5 0 0 1 3 8V5h4V3Zm0 4H5v1a3 3 0 0 0 2 2.8V7Zm10 0v3.8A3 3 0 0 0 19 8V7h-2Z"/></svg>Top scores</button>
         <button class="tbtn" id="optBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4.8a7.5 7.5 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.4-.8-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-.8a7.5 7.5 0 0 0 1.7 1l.4 2.8h3.8l.4-2.8a7.5 7.5 0 0 0 1.7-1l2.4.8 2-3.4ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg>Options</button>
         <button class="tbtn" id="titleSound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3Zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4Zm-2.5-8.8v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z"/></svg><span id="titleSoundTxt">Sound on</span></button>
       </div>
@@ -226,7 +250,8 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   <div class="menu-inner">
     <div class="mhead">
       <button class="btn" id="backBtn" title="Back to title">&#8249; Back</button>
-      <div><p class="eyebrow">Seven days of windfalls</p><h2 class="h2">Pick your day</h2></div>
+      <div class="grow"><p class="eyebrow">Seven days of windfalls</p><h2 class="h2">Pick your day</h2></div>
+      <button class="btn" id="menuBoard">Top scores</button>
     </div>
     <div class="ammo-pick" role="group" aria-labelledby="ammoPickLbl">
       <p class="lbl2" id="ammoPickLbl">Pick your ammo</p>
@@ -246,6 +271,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <div id="options" class="screen center" hidden>
   <div class="card">
     <h2>Options</h2>
+    <div class="orow"><label for="optName">Your name</label><input class="tin" id="optName" maxlength="16" autocomplete="nickname" placeholder="For the top scores" style="max-width:180px"></div>
     <div class="orow"><span>Sound</span><button class="btn" id="optSound">On</button></div>
     <div class="orow"><span>Ammo</span><button class="btn" id="optAmmo">Apples</button></div>
     <div class="orow"><span>Best scores</span><button class="btn" id="optReset">Reset</button></div>
@@ -280,6 +306,17 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   </div>
 </div>
 
+<div id="board" class="screen center" hidden>
+  <div class="card board">
+    <h2>Top scores</h2>
+    <p class="sub">Best day totals from everyone who plays. One spot per name.</p>
+    <div class="daytabs" id="boardTabs" role="tablist" aria-label="Day"></div>
+    <ol class="blist" id="boardList"></ol>
+    <div class="namerow"><input class="tin" id="boardName" maxlength="16" autocomplete="nickname" placeholder="Your name" aria-label="Your name"><button class="btn small" id="boardNameSave">Save name</button></div>
+    <div class="row"><button class="btn primary" id="boardClose">Done</button><button class="btn" id="boardRefresh">Refresh</button></div>
+  </div>
+</div>
+
 <div id="over" class="screen center" hidden>
   <div class="card">
     <div>
@@ -296,6 +333,11 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
       <div><b id="stTarget">0</b><span>Day best</span></div>
     </div>
     <p class="note" id="overNote"></p>
+    <div class="post" id="postBox" hidden>
+      <div class="namerow" id="postForm"><input class="tin" id="postName" maxlength="16" autocomplete="nickname" placeholder="Your name" aria-label="Your name"><button class="btn primary small" id="postBtn">Post day total</button></div>
+      <p class="pnote" id="postNote"></p>
+      <div><button class="btn small" id="postSee">See top scores</button></div>
+    </div>
     <div class="row">
       <button class="btn primary" id="againBtn">Throw again</button>
       <button class="btn" id="nextBtn" hidden>Next spot</button>
@@ -1379,7 +1421,7 @@ function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)
   if(un&&cleared[dayKey(i)]){wrap.classList.add('has-jump');const j=document.createElement('div');j.className='jump';j.innerHTML='<span>Start at</span>';
     SPOT_NAMES.forEach((nm,k)=>{const sb=document.createElement('button');sb.type='button';sb.id=`jump-${dayKey(i)}-${k}`;sb.textContent=nm;sb.title=`Day ${i+1}, ${nm}`;sb.addEventListener('click',()=>startRound(i,k,{fresh:true}));j.appendChild(sb);});wrap.appendChild(j);}
   box.appendChild(wrap);});}
-function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard'])$(s).hidden=s!==id;}
+function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard','#board'])$(s).hidden=s!==id;}
 // Pick a day from the list: continue where you left off if this day has progress saved, otherwise start at the garden.
 function startDay(i){if(cleared[dayKey(i)]){startRound(i,0,{fresh:true});return;}const pr=store.get('prog',null);if(pr&&pr.day===i&&pr.furthest>0&&Array.isArray(pr.scores)){dayIdx=i;dayScores=pr.scores.slice(0,4);furthestStep=Math.min(3,pr.furthest|0);startRound(i,furthestStep);}else startRound(i,0,{fresh:true});}
 function startRound(i,step,opts){
@@ -1416,8 +1458,41 @@ function endRound(){
   else note.textContent=`Day total ${total.toLocaleString()}. ${SPOT_ORDER.length-1-spotStep} spot${SPOT_ORDER.length-1-spotStep===1?'':'s'} to go. Throw again to replay this one.`;
   const nb=$('#nextBtn');nb.textContent=lastSpot?'Go home':'Next spot';nb.hidden=!(passed||(cleared[key]&&!lastSpot));// on a cleared day you can always move on (home still needs the goal)
   if(passed&&!lastSpot){furthestStep=Math.max(furthestStep,spotStep+1);saveProg();}
+  // Day total goes on the shared board once all four spots have been played this run.
+  const fullDay=lastSpot&&dayScores.every(v=>v>0);$('#postBox').hidden=!fullDay;
+  if(fullDay)offerPost(dayIdx+1,total);
   show('#over');(passed?nb:$('#againBtn')).focus();
 }
+
+/* ---------------- top scores (shared, via Supabase) ---------------- */
+// Public read and add-only table; the key below is the project's publishable key, safe to ship in a web page.
+const SB={url:'https://zkefxhjslolsxjquynmx.supabase.co/rest/v1/rotten_scores',key:'sb_publishable_mNTCN1110et5STDT-VRnvg_jUonqoB7'};
+let playerName=store.get('name','');let boardDay=1,boardFrom='#title',pendingPost=null;
+function cleanName(n){return String(n||'').replace(/[<>]/g,'').replace(/\s+/g,' ').trim().slice(0,16);}
+function setName(n){playerName=cleanName(n);store.set('name',playerName);for(const id of['#optName','#boardName','#postName'])$(id).value=playerName;}
+async function fetchTop(day){const r=await fetch(`${SB.url}?select=name,score&day=eq.${day}&order=score.desc&limit=300`,{headers:{apikey:SB.key}});if(!r.ok)throw new Error('HTTP '+r.status);
+  const rows=await r.json(),seen=new Set(),out=[];for(const x of rows){const k=x.name.toLowerCase();if(seen.has(k))continue;seen.add(k);out.push(x);}return out;}
+async function postScore(day,score,name){const r=await fetch(SB.url,{method:'POST',headers:{apikey:SB.key,'Content-Type':'application/json',Prefer:'return=minimal'},body:JSON.stringify({name,day,score})});
+  if(!r.ok){const t=await r.text();throw new Error(/Too many/.test(t)?'busy':'HTTP '+r.status);}}
+function offerPost(day,total){pendingPost={day,total,done:false};$('#postName').value=playerName;$('#postForm').hidden=false;$('#postNote').className='pnote';$('#postNote').textContent='';$('#postSee').parentElement.hidden=true;
+  if(playerName)submitPost();else $('#postNote').textContent=`Add your name to put ${total.toLocaleString()} on the Day ${day} board.`;}
+async function submitPost(){const P=pendingPost;if(!P||P.done)return;const name=cleanName($('#postName').value||playerName);const note=$('#postNote');
+  if(!name){note.className='pnote bad';note.textContent='Type a name first.';$('#postName').focus();return;}
+  setName(name);note.className='pnote';note.textContent='Posting…';$('#postBtn').disabled=true;
+  try{await postScore(P.day,P.total,name);P.done=true;$('#postForm').hidden=true;let rank='';try{const top=await fetchTop(P.day);const i=top.findIndex(x=>x.name.toLowerCase()===name.toLowerCase());if(i>=0)rank=` You're #${i+1} on Day ${P.day}.`;}catch(e){}
+    note.textContent=`Posted ${P.total.toLocaleString()} as ${name}.${rank}`;$('#postSee').parentElement.hidden=false;}
+  catch(e){note.className='pnote bad';note.textContent=e.message==='busy'?'The scoreboard is busy. Try again in a minute.':'Couldn\'t reach the scoreboard. Check your connection and try again.';}
+  finally{$('#postBtn').disabled=false;}}
+function renderBoardTabs(){const t=$('#boardTabs');t.innerHTML='';for(let d=1;d<=DAYS.length;d++){const b=document.createElement('button');b.type='button';b.role='tab';b.id='board-d'+d;b.textContent='Day '+d;b.setAttribute('aria-selected',String(d===boardDay));b.addEventListener('click',()=>{boardDay=d;renderBoardTabs();loadBoard();});t.appendChild(b);}
+  for(const b of t.children)b.textContent=t.clientWidth<420?b.id.slice(7):'Day '+b.id.slice(7);}
+async function loadBoard(){const list=$('#boardList');list.innerHTML='<li class="empty">Loading…</li>';
+  try{const top=(await fetchTop(boardDay)).slice(0,10);list.innerHTML='';
+    if(!top.length){list.innerHTML=`<li class="empty">No scores for Day ${boardDay} yet. Finish all four spots to be first.</li>`;return;}
+    top.forEach((x,i)=>{const li=document.createElement('li');if(playerName&&x.name.toLowerCase()===playerName.toLowerCase())li.className='me';
+      const rk=document.createElement('span');rk.className='rk';rk.textContent=i+1;const nm=document.createElement('span');nm.className='nm';nm.textContent=x.name;const sc=document.createElement('span');sc.className='sc';sc.textContent=x.score.toLocaleString();
+      li.append(rk,nm,sc);list.appendChild(li);});}
+  catch(e){list.innerHTML='<li class="empty">Couldn\'t reach the scoreboard. Check your connection and tap Refresh.</li>';}}
+function openBoard(from,day){boardFrom=from;boardDay=day||boardDay||1;$('#boardName').value=playerName;show('#board');renderBoardTabs();loadBoard();$('#boardClose').focus();}
 
 /* ---------------- input ---------------- */
 function setAim(e){let x=e.clientX,y=e.clientY;if(e.pointerType==='touch')y-=70;aim.sx=x;aim.sy=y;aim.nx=clamp(x/innerWidth*2-1,-1,1);aim.ny=clamp(-(y/innerHeight*2-1),-1,1);crossEl.style.transform=`translate(${x}px,${y}px)`;}
@@ -1426,10 +1501,10 @@ canvas.addEventListener('pointerdown',e=>{if(state!=='play'&&state!=='showdown')
 const release=()=>{if(!pointerDown)return;pointerDown=false;if(charging){charging=false;doThrow();}};
 window.addEventListener('pointerup',release);window.addEventListener('pointercancel',()=>{pointerDown=false;charging=false;});
 let spaceDown=false;
-window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
+window.addEventListener('keydown',e=>{if(e.target&&e.target.closest&&e.target.closest('input,textarea'))return;const k=e.key.toLowerCase();
   if(k==='e'&&state==='play'){setAmmo(nextAmmo());store.set('ammo',ammo);}
   else if(k==='m')setMute(!muted);
-  else if(k==='p'||k==='escape'){if(state==='play'||state==='showdown')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
+  else if(k==='p'||k==='escape'){if(state==='play'||state==='showdown')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#board').hidden)show(boardFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
   else if((k==='enter'||k===' ')&&state==='menu'&&!$('#title').hidden){e.preventDefault();initAudio();toMenu();}
   else if(k===' '&&state==='play'){e.preventDefault();if(!spaceDown){spaceDown=true;pointerDown=true;if(reload<=0){charging=true;power=0;}}}});
 window.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;release();}});
@@ -1461,7 +1536,18 @@ function buildAmmoPicker(){const row=$('#ammoRow');if(!row)return;const th=ammoT
     b.addEventListener('click',()=>{setAmmo(id);store.set('ammo',ammo);});row.appendChild(b);}}
 buildAmmoPicker();
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
-$('#optClose').addEventListener('click',()=>show(optFrom));
+$('#optClose').addEventListener('click',()=>{setName($('#optName').value);show(optFrom);});
+$('#titleBoard').addEventListener('click',e=>{e.stopPropagation();openBoard('#title',1);});
+$('#menuBoard').addEventListener('click',()=>openBoard('#menu',1));
+$('#postSee').addEventListener('click',()=>openBoard('#over',pendingPost?pendingPost.day:1));
+$('#postBtn').addEventListener('click',submitPost);
+$('#postName').addEventListener('keydown',e=>{if(e.key==='Enter')submitPost();});
+$('#boardClose').addEventListener('click',()=>show(boardFrom));
+$('#boardRefresh').addEventListener('click',loadBoard);
+$('#boardNameSave').addEventListener('click',()=>{setName($('#boardName').value);loadBoard();});
+$('#boardName').addEventListener('keydown',e=>{if(e.key==='Enter'){setName($('#boardName').value);loadBoard();}});
+$('#optName').addEventListener('change',()=>setName($('#optName').value));
+setName(playerName);
 $('#backBtn').addEventListener('click',toTitle);
 $('#sdPrimary').addEventListener('click',()=>{if(SD.gameOver){endShowdown();toTitle();return;}if(!cleared[dayKey(dayIdx)])startShowdown();else if(dayIdx+1<DAYS.length)startRound(dayIdx+1,0);else toMenu();});
 $('#sdMenu').addEventListener('click',toMenu);
