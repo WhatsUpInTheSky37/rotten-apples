@@ -9,7 +9,8 @@ A first-person browser game: hide in your front garden, watch the cars come down
 - **Aim** with the mouse or your finger
 - **Hold, then release** to throw. Holding longer throws harder, and the dotted arc shows where it's headed
 - **E** cycles apples → eggs → corn. **P** pauses. **M** mutes
-- **Corn** is heavy: it throws about 15% slower, but a cob anywhere on the car sends the driver off the road. Apples and eggs only do that on the windshield
+- Only a **direct windshield hit** sends a car off the road. A hit anywhere else just rattles the driver
+- **Corn** is heavy: it throws about 15% slower, but every hit is worth 50% more points
 - Lead the car. Any hit scores, but only a **windshield** hit makes the driver swerve off the road
 - Windshield hits, long shots, Camaros and streaks score the most. Crashed cars stay where they land, so keep pelting them
 - Three special cars pass twice each round: a grey Cybertruck (2,300), a pink topless Jeep with four girls in it (1,500), and a blue T-top IROC-Z with the tops out and two guys in it (1,500). Each has its own callout when you hit it

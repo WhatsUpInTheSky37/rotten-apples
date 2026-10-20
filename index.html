@@ -219,7 +219,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
       <div class="ammo-row">
         <button type="button" class="ammo-opt" id="pick-apple" data-ammo="apple" aria-pressed="true"><span class="an"><span class="ammo-dot"></span>Apples</span><span class="ad">The all-rounder. Windshield hits make them swerve.</span></button>
         <button type="button" class="ammo-opt" id="pick-egg" data-ammo="egg" aria-pressed="false"><span class="an"><span class="ammo-dot egg"></span>Eggs</span><span class="ad">Yolk on the glass. Windshield hits make them swerve.</span></button>
-        <button type="button" class="ammo-opt" id="pick-corn" data-ammo="corn" aria-pressed="false"><span class="an"><span class="ammo-dot corn"></span>Corn</span><span class="ad">Heavy and slower, but any hit on the car runs them off.</span></button>
+        <button type="button" class="ammo-opt" id="pick-corn" data-ammo="corn" aria-pressed="false"><span class="an"><span class="ammo-dot corn"></span>Corn</span><span class="ad">Heavy and slower, but every hit pays 50% more.</span></button>
       </div>
     </div>
     <div id="spots" class="spots"></div>
@@ -1080,12 +1080,12 @@ function onHit(c,lp,a){
   const ws=isWindshield(c,lp);const dist=wp.distanceTo(camera.position);
   // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
   let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
-  let pts=Math.round(base*mult);if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
-  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
+  let pts=Math.round(base*mult*(a.type==='corn'?1.5:1));// a heavy cob dents the car: 50% more pointsif(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
+  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED! x1.5');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   if(combo>1)SFX.ding(combo);
-  // A windshield hit makes the driver swerve. A corn cob is heavy enough to do it anywhere on the body; apples and eggs elsewhere just rattle them.
+  // Only a direct windshield hit makes the driver swerve off the road, whatever you throw. Anywhere else just rattles them.
   if(a.type==='corn')SFX.thunk(vol*1.4);
-  if(ws||a.type==='corn'){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
+  if(ws){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
   if(Math.random()<.55)setTimeout(()=>SFX.honk(vol,Math.random()<.5?1:2),500);
   const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:c.kind==='sublime'?['NOT THE CUTLASS!','I WAS JAMMING!','BRO, SANTERIA WAS ON!','MY CUTLASS, MAN!']:c.kind==='cavalier'?['MY CAVALIER!','IT\'S PAID OFF!','MOM\'S GONNA KILL ME!','IT ALREADY HAD DENTS!']:c.kind==='transam'?['NOT THE TRANS AM!','THE T-TOPS ARE OFF, MAN!','I JUST GOT IT DETAILED!','APPLE IN MY LAP!']:c.kind==='p968'?['IT\'S A 968!','DO YOU KNOW WHAT THIS IS?!','A PORSCHE?! REALLY?!','ONLY 4,000 MADE!']:null;
   setTimeout(()=>popup(quips?pick(quips):pick(['HEY!','MY PAINT!','ARE YOU KIDDING?!','WHO THREW THAT?','I JUST WASHED IT!','UNBELIEVABLE!','KIDS!','WTF YO!','BEAT HIS ASS!','THAT WAS A LEASE!','MY KID IS IN HERE!','I KNOW WHERE YOU LIVE!','NOT THE PAINT PROTECTION!','I\'M CALLING YOUR MOM!']),c.group.position.clone().setY(2.4),'say'),420);
@@ -1240,7 +1240,7 @@ function updateHUD(force){renderGoal();
 const AMMO=['apple','egg','corn'],AMMO_NAME={apple:'Apples',egg:'Eggs',corn:'Corn'};
 function prefAmmo(){const a=store.get('ammo','apple');return AMMO.includes(a)?a:'apple';}
 function nextAmmo(){return AMMO[(AMMO.indexOf(ammo)+1)%AMMO.length];}
-const HINTS={apple:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',egg:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',corn:'Corn is heavy: it flies slower, but a hit anywhere on the car sends them off the road.'};
+const HINTS={apple:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',egg:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',corn:'Corn is heavy: it flies slower, but every hit is worth 50% more. Hit the windshield to make them swerve.'};
 let hintTimer=0;
 function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=HINTS[a];if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
 function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
