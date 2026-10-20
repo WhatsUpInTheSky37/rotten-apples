@@ -62,6 +62,10 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .orow{display:flex;align-items:center;justify-content:space-between;gap:12px;font:600 16px/1.2 var(--f-body)}
 .orow .btn{min-width:110px;text-align:center}
 .orow .dim{color:var(--dim);font-weight:600}
+.spotrow{display:flex;flex-wrap:wrap;gap:6px;justify-content:flex-end}
+.spotrow .btn{padding:8px 10px;font-size:13px;min-width:0}
+.spotrow .btn.cur{background:var(--apple);border-color:var(--apple)}
+.spotrow .btn[disabled]{opacity:.38;cursor:not-allowed}
 .lede{margin:0;max-width:52ch;font:500 17px/1.5 var(--f-body);color:var(--muted)}
 .spots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.spots{grid-template-columns:1fr}}
@@ -234,6 +238,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 <div id="pause" class="screen center" hidden>
   <div class="card">
     <h2>Paused</h2>
+    <div class="orow" id="pauseSpotsRow"><span>Spot</span><div class="spotrow" id="pauseSpots"></div></div>
     <div class="orow" id="pauseAmmoRow"><span>Ammo <small class="dim">(E)</small></span><button class="btn" id="pauseAmmo">Apples</button></div>
     <div class="orow"><span>Sound <small class="dim">(M)</small></span><button class="btn" id="pauseSound">On</button></div>
     <div class="row">
@@ -847,7 +852,9 @@ function setAmbient(kind){if(!AC)return;if(ambientNode){try{ambientNode.stop();}
 function distVol(p){return clamp(28/Math.max(1,p.distanceTo(camera.position)),.12,1);}
 
 /* ---------------- game state ---------------- */
-let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1,dayIdx=0,DAY=DAYS[0],spotStep=0,dayScores=[0,0,0,0];
+let scene=null,sky=null,sun=null,R=null,LV=null,levelIdx=-1,dayIdx=0,DAY=DAYS[0],spotStep=0,dayScores=[0,0,0,0],furthestStep=0;
+const SPOT_NAMES=['Garden','Treehouse','Overpass','Rooftop'];
+function saveProg(){store.set('prog',{day:dayIdx,furthest:furthestStep,scores:dayScores.slice()});}
 const dayTotal=()=>dayScores.reduce((a,b)=>a+b,0);
 let state='menu';
 const world={cars:[],apples:[],splats:[],parts:[],pops:[]};
@@ -1150,9 +1157,9 @@ function updateShowdown(dt){
 }
 function onManHit(a){const m=SD.man;SD.hit=true;SD.fallT=0;burst(a.pos,a.type,new V3(0,1,0));SFX.splat(1);SFX.thunk(1);popup('OOF!',m.position.clone().setY(1.6),'gold');banner('GOT HIM!');setTimeout(()=>sdSay(pick(['OK OK I\'M LEAVING!','MY EYE!','I\'LL BE BACK!'])),500);
   const d=new THREE.Mesh(DECAL_GEO,splatMats[a.type]);const lp=m.worldToLocal(a.pos.clone());d.position.set(lp.x,clamp(lp.y,.9,1.5)/SD.v.h,.14*SD.v.w+.01);d.scale.set(.45,.45,1);m.add(d);}
-function sdResult(ok){const key=dayKey(dayIdx);if(ok&&dayIdx+1>=DAYS.length){cleared[key]=true;store.set('cleared',cleared);startArrest();return;}
+function sdResult(ok){const key=dayKey(dayIdx);if(ok&&dayIdx+1>=DAYS.length){cleared[key]=true;store.set('cleared',cleared);store.set('prog',null);startArrest();return;}
   state='sdover';charging=false;held.visible=false;crossEl.hidden=true;
-  if(ok){cleared[key]=true;store.set('cleared',cleared);const lastDay=dayIdx+1>=DAYS.length;$('#sdTitle').textContent=lastDay?'Seven days survived':`Day ${dayIdx+1} cleared`;$('#sdNote').className='note';$('#sdNote').textContent=lastDay?'Every spot, every day, every driver. Go wash the car.':`He's leaving. Day ${dayIdx+2} unlocked. A tad faster, a few fewer cars, and a quicker driver.`;$('#sdPrimary').textContent=lastDay?'Choose day':'Next day';}
+  if(ok){cleared[key]=true;store.set('cleared',cleared);store.set('prog',null);const lastDay=dayIdx+1>=DAYS.length;$('#sdTitle').textContent=lastDay?'Seven days survived':`Day ${dayIdx+1} cleared`;$('#sdNote').className='note';$('#sdNote').textContent=lastDay?'Every spot, every day, every driver. Go wash the car.':`He's leaving. Day ${dayIdx+2} unlocked. A tad faster, a few fewer cars, and a quicker driver.`;$('#sdPrimary').textContent=lastDay?'Choose day':'Next day';}
   else{$('#sdTitle').textContent='He got you';$('#sdNote').className='note bad';$('#sdNote').textContent='Two apples and he still made it to the door. Day not cleared.';$('#sdPrimary').textContent='Try again';}
   show('#sdcard');$('#sdPrimary').focus();}
 
@@ -1176,11 +1183,13 @@ function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
 function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
   const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}`;
-  b.innerHTML=`<span class="no">Day ${i+1} · garden, treehouse, overpass, rooftop, home</span><span class="nm">Day ${i+1}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${cleared[dayKey(i)]?'Cleared':'Hit the driver at home to clear'}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
-  if(un)b.addEventListener('click',()=>startRound(i,0));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
+  b.innerHTML=`<span class="no">Day ${i+1} · garden, treehouse, overpass, rooftop, home</span><span class="nm">Day ${i+1}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${(()=>{const pr=store.get('prog',null);return pr&&pr.day===i&&pr.furthest>0&&!cleared[dayKey(i)]?`Continue at ${SPOT_NAMES[Math.min(3,pr.furthest|0)]} ${Math.min(3,pr.furthest|0)+1}/4`:(cleared[dayKey(i)]?'Cleared':'Hit the driver at home to clear');})()}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
+  if(un)b.addEventListener('click',()=>startDay(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
 function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard'])$(s).hidden=s!==id;}
-function startRound(i,step){
-  initAudio();endShowdown();dayIdx=i;DAY=DAYS[i];if(step==null)step=spotStep;if(step===0)dayScores=[0,0,0,0];spotStep=step;pendingShowdown=false;
+// Pick a day from the list: continue where you left off if this day has progress saved, otherwise start at the garden.
+function startDay(i){const pr=store.get('prog',null);if(pr&&pr.day===i&&pr.furthest>0&&Array.isArray(pr.scores)){dayIdx=i;dayScores=pr.scores.slice(0,4);furthestStep=Math.min(3,pr.furthest|0);startRound(i,furthestStep);}else startRound(i,0,{fresh:true});}
+function startRound(i,step,opts){
+  initAudio();endShowdown();if(step==null)step=spotStep;if(i!==dayIdx||(step===0&&opts&&opts.fresh)){dayScores=[0,0,0,0];furthestStep=0;}dayIdx=i;DAY=DAYS[i];spotStep=step;furthestStep=Math.max(furthestStep,step);pendingShowdown=false;saveProg();
   const spot=SPOT_ORDER[step];if(spot!==levelIdx)loadLevel(spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   $('#spotname').textContent=`Day ${i+1} · ${step+1}/4 ${LV.name}`;
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').style.opacity=1;
@@ -1191,12 +1200,13 @@ function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true
 function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 let pausedFrom='play';
-function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;$('#pauseAmmoRow').hidden=pausedFrom==='showdown';show('#pause');}
+function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep+1;if(!ok){b.disabled=true;b.title='Reach it first';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
+function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;const sd=pausedFrom==='showdown';$('#pauseAmmoRow').hidden=sd;$('#pauseSpotsRow').hidden=sd;if(!sd)renderPauseSpots();show('#pause');}
 function resume(){if(state!=='paused')return;state=pausedFrom;show(null);}
 function endRound(){
   state='over';charging=false;held.visible=false;crossEl.hidden=true;
   const key=dayKey(dayIdx),lastDay=dayIdx+1>=DAYS.length,lastSpot=spotStep===SPOT_ORDER.length-1;
-  dayScores[spotStep]=score;const total=dayTotal();
+  dayScores[spotStep]=score;saveProg();const total=dayTotal();
   let isBest=false;if(lastSpot){const prev=best[key]||0;isBest=total>prev;if(isBest){best[key]=total;store.set('best',best);}}
   pendingShowdown=lastSpot;
   $('#overSpot').textContent=`Day ${dayIdx+1} · ${spotStep+1}/4 ${LV.name}`;
@@ -1238,7 +1248,7 @@ $('#titleSound').addEventListener('click',e=>{e.stopPropagation();initAudio();se
 $('#optBtn').addEventListener('click',e=>{e.stopPropagation();openOptions('#title');});
 $('#optSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#optAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
-$('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
+$('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>show(optFrom));
 $('#backBtn').addEventListener('click',toTitle);
 $('#sdPrimary').addEventListener('click',()=>{if(SD.gameOver){endShowdown();toTitle();return;}if(!cleared[dayKey(dayIdx)])startShowdown();else if(dayIdx+1<DAYS.length)startRound(dayIdx+1,0);else toMenu();});
