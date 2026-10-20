@@ -1080,7 +1080,8 @@ function onHit(c,lp,a){
   const ws=isWindshield(c,lp);const dist=wp.distanceTo(camera.position);
   // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
   let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
-  let pts=Math.round(base*mult*(a.type==='corn'?1.5:1));// a heavy cob dents the car: 50% more pointsif(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
+  // A heavy corn cob dents the car: 50% more points.
+  let pts=Math.round(base*mult*(a.type==='corn'?1.5:1));if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
   if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED! x1.5');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   if(combo>1)SFX.ding(combo);
   // Only a direct windshield hit makes the driver swerve off the road, whatever you throw. Anywhere else just rattles them.
