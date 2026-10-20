@@ -724,6 +724,12 @@ const CAR_TYPES={
   // Cybertruck: one stainless wedge. hood slopes from hoodF at the nose to `hood` at the windscreen base (cf); belt is the windscreen base height.
   cyber:{L:5.9,W:2.0,clr:.42,hoodF:.95,hood:1.5,belt:1.5,trunk:1.35,cf:1.3,cr:-2.94,rf:.15,rr:.15,roof:1.9,wr:.46,wb:1.9,wedge:true,doors:2},
   // Topless Jeep: flat hood, open tub, windshield frame and roll bar; roof height is the roll bar so hits in the open top still count.
+  // Late-80s Olds Cutlass Supreme coupe: long flat hood, upright formal roofline, long square trunk, chrome bumpers.
+  cutlass:{L:5.05,W:1.83,clr:.3,hood:.96,belt:.99,trunk:.98,cf:.42,cr:-1.3,rf:-.18,rr:-1.08,roof:1.38,wr:.34,wb:1.45,doors:1,hw:.5,chrome:true},
+  // Mid-90s Chevy Cavalier sedan: small, rounded, short trunk.
+  cavalier:{L:4.6,W:1.72,clr:.28,hood:.9,belt:.95,trunk:.97,cf:.72,cr:-1.3,rf:-.02,rr:-.98,roof:1.36,wr:.3,wb:1.33,doors:2,hw:.42},
+  // Porsche 968: long sloping nose with flip-up lamps lying flat, rounded glass hatch down to a short tail, small lip spoiler.
+  p968:{L:4.32,W:1.74,clr:.2,hood:.78,belt:.84,trunk:.84,cf:.62,cr:-1.95,rf:-.12,rr:-.72,roof:1.27,wr:.33,wb:1.2,doors:1,spoiler:.06,hw:.26,popups:true},
   jeep:{L:4.3,W:1.85,clr:.52,hood:1.08,belt:1.12,trunk:1.12,cf:.75,cr:-1.75,rf:.35,rr:-.9,roof:1.95,wr:.42,wb:1.35,open:true,doors:1,hw:.3},
 };
 const CAR_COLORS=['#e9e9e6','#e9e9e6','#b7bcc1','#9aa0a6','#1b1d20','#1b1d20','#22334f','#7d1714','#3b4a3c','#c9bfa8','#5d6166','#8c2a1c','#2f5d8a'];
@@ -787,7 +793,9 @@ function makeCar(t,color,kind){
       const spare=new THREE.Mesh(TIRE_GEO,tireMats());spare.rotation.y=Math.PI/2;spare.scale.set(T.wr*.9,T.wr*.9,.8);spare.position.set(-hl-.2,T.belt-.3,0);g.add(spare);
       for(const sx of[1,-1])for(const sz of[1,-1])g.add(box(p,T.wr*2.4,.14,.2,sx*T.wb,T.clr+.42,sz*(W/2+.06)));
     }else{const cabMat=kind==='iroc'?std('tglass',{color:C('#a9c4d6'),metalness:.15,roughness:.08,transparent:true,opacity:.32,depthWrite:false}):M.glass();g.add(mesh(Gm.cab,cabMat,true,false));if(kind!=='iroc')g.add(mesh(Gm.roof,p,false,false));g.add(mesh(Gm.pillar,p,false,false));}
-    g.add(box(M.trim(),.14,.22,W*.98,hl+.07,T.clr+.12,0));g.add(box(M.trim(),.14,.22,W*.98,-hl-.08,T.clr+.12,0));
+    const bump=T.chrome?M.rim():M.trim();g.add(box(bump,.14,.22,W*.98,hl+.07,T.clr+.12,0));g.add(box(bump,.14,.22,W*.98,-hl-.08,T.clr+.12,0));
+    if(T.chrome)for(const sd of[1,-1]){g.add(box(M.rim(),T.cf-T.cr,.025,.02,(T.cf+T.cr)/2,T.belt+.045,sd*(W/2+.012)));g.add(box(M.trim(),T.L*.8,.06,.02,0,T.clr+.3,sd*(W/2+.013)));}
+    if(T.popups)for(const z of[W/2-.32,-(W/2-.32)]){g.add(box(M.trim(),.42,.025,.36,hl-.38,T.hood-.02,z));g.add(box(M.head(),.04,.06,.28,hl-.16,T.hood-.035,z));}
     // grille with chrome slats
     g.add(box(M.trim(),.05,.17,W*.42,hl+.09,T.hood-.25,0));for(const dy of[-.045,.045])g.add(box(M.rim(),.06,.02,W*.4,hl+.1,T.hood-.25+dy,0));
     if(T.lifted){g.add(box(M.rim(),.07,.03,W*.44,hl+.11,T.hood-.25,0));g.add(box(M.rim(),.07,.19,.03,hl+.11,T.hood-.25,0));}
@@ -828,6 +836,8 @@ function makeCar(t,color,kind){
     [[.05,.4],[.05,-.4],[-.95,.4],[-.95,-.4]].forEach(([x,z],i)=>rider(girls[i],x,z));}
   if(kind==='iroc'){rider({skin:'#e0ac69',shirt:'#111111',hair:'#2a1a0e',shades:true},-.2,.38);rider({skin:'#f1d2b6',shirt:'#f2f2f2',hair:'#c98a3a',shades:true},-.2,-.38);
     g.add(box(std('irocplate',{map:canvasTex(256,96,(gc,w,h)=>{gc.fillStyle='#ece9df';gc.fillRect(0,0,w,h);gc.fillStyle='#1f4fbf';gc.font='bold 58px Arial';gc.textAlign='center';gc.textBaseline='middle';gc.fillText('IROCPWR',w/2,h/2+4);}),roughness:.5}),.02,.16,.44,-hl-.17,T.trunk-.36,0));}
+  if(kind==='sublime'){const pm=std('sublimeplate',{map:canvasTex(256,96,(gc,w,h)=>{gc.fillStyle='#f3f1ea';gc.fillRect(0,0,w,h);gc.strokeStyle='#1b2c6b';gc.lineWidth=4;gc.strokeRect(4,4,w-8,h-8);gc.fillStyle='#1b2c6b';gc.font='bold 14px Arial';gc.textAlign='center';gc.fillText('CALIFORNIA',w/2,20);gc.font='bold 54px Arial';gc.textBaseline='middle';gc.fillText('SUBLIME',w/2,h/2+10);}),roughness:.5});
+    g.add(box(pm,.02,.16,.46,-hl-.17,T.trunk-.36,0));g.add(box(pm,.02,.15,.44,hl+.16,T.clr+.12,0));}
   if(kind==='police'){for(const sd of[1,-1])g.add(box(paint('#f1f1ee'),T.L*.42,T.belt-T.clr-.22,.01,0,(T.belt+T.clr)/2+.04,sd*(W/2+.012)));
     g.add(box(M.trim(),.3,.08,W*.7,(T.rf+T.rr)/2,T.roof+.1,0));const r=new THREE.MeshStandardMaterial({color:C('#550000'),emissive:C('#ff1a1a'),emissiveIntensity:.2});const b=new THREE.MeshStandardMaterial({color:C('#000a55'),emissive:C('#2a5bff'),emissiveIntensity:.2});
     g.add(box(r,.24,.1,W*.3,(T.rf+T.rr)/2,T.roof+.18,W*.18));g.add(box(b,.24,.1,W*.3,(T.rf+T.rr)/2,T.roof+.18,-W*.18));car.extras.red=r;car.extras.blue=b;}
@@ -890,7 +900,7 @@ let state='menu';
 const world={cars:[],apples:[],splats:[],parts:[],pops:[]};
 let score=0,combo=0,bestCombo=0,hits=0,throws=0,offroads=0,timeLeft=ROUND,reload=0,charging=false,power=0,pointerDown=false,ammo='apple',elapsed=0,lastTick=0,overT=-1,hintShown=true;
 // Special cars: each shows up twice a round at scheduled moments, in whichever lane has room.
-const SPECIALS={cyber:{pts:2300,times:()=>[rnd(6,18),rnd(28,44)]},jeep:{pts:1500,times:()=>[rnd(4,16),rnd(26,46)]},iroc:{pts:1500,times:()=>[rnd(9,22),rnd(31,50)]}};
+const SPECIALS={cyber:{pts:2300,times:()=>[rnd(6,18),rnd(28,44)]},jeep:{pts:1500,times:()=>[rnd(4,16),rnd(26,46)]},iroc:{pts:1500,times:()=>[rnd(9,22),rnd(31,50)]},sublime:{pts:1500,times:()=>[rnd(5,25),rnd(33,52)]},cavalier:{pts:1200,times:()=>[rnd(12,40)]},p968:{pts:1800,times:()=>[rnd(15,45)]}};
 let specialTimes={},specialN={};const CYBER_PTS=SPECIALS.cyber.pts;
 const best=store.get('best',{});const cleared=store.get('cleared',{});
 const aim={nx:0,ny:-.1,sx:innerWidth/2,sy:innerHeight*.55};
@@ -938,7 +948,10 @@ function spawnCar(lane,s,force){
   if(force==='cyber'){type='cyber';color=CYBER_GREY;kind='cyber';}
   if(force==='jeep'){type='jeep';color='#ff5fa8';kind='jeep';}
   if(force==='iroc'){type='camaro';color='#1e4fbf';kind='iroc';}
-  const c=makeCar(type,color,kind);Object.assign(c,{lane,dir:lane.dir,off:lane.off,s,cruise:rnd(LV.speed[0],LV.speed[1])*DAY.speedMul*(kind==='sports'||kind==='camaro'?1.25:1),crashed:false,police:kind==='police',sports:kind==='sports',kind});
+  if(force==='sublime'){type='cutlass';color='#efeee8';kind='sublime';}
+  if(force==='cavalier'){type='cavalier';color='#5c1a24';kind='cavalier';}
+  if(force==='p968'){type='p968';color='#178a8c';kind='p968';}
+  const c=makeCar(type,color,kind);Object.assign(c,{lane,dir:lane.dir,off:lane.off,s,cruise:rnd(LV.speed[0],LV.speed[1])*DAY.speedMul*(kind==='sports'||kind==='camaro'||kind==='p968'?1.25:1),crashed:false,police:kind==='police',sports:kind==='sports',kind});
   c.speed=c.cruise;placeCar(c);scene.add(c.group);world.cars.push(c);return c;
 }
 function placeCar(c){const p=R.point(c.s,c.off,0);c.group.position.copy(p);c.group.rotation.set(0,R.carYaw+(c.dir<0?Math.PI:0),0);}
@@ -1053,13 +1066,13 @@ function onHit(c,lp,a){
   // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
   let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
   let pts=Math.round(base*mult);if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
-  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
+  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   if(combo>1)SFX.ding(combo);
   // A windshield hit makes the driver swerve. A corn cob is heavy enough to do it anywhere on the body; apples and eggs elsewhere just rattle them.
   if(a.type==='corn')SFX.thunk(vol*1.4);
   if(ws||a.type==='corn'){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
   if(Math.random()<.55)setTimeout(()=>SFX.honk(vol,Math.random()<.5?1:2),500);
-  const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:null;
+  const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:c.kind==='sublime'?['NOT THE CUTLASS!','I WAS JAMMING!','BRO, SANTERIA WAS ON!','MY CUTLASS, MAN!']:c.kind==='cavalier'?['MY CAVALIER!','IT\'S PAID OFF!','MOM\'S GONNA KILL ME!','IT ALREADY HAD DENTS!']:c.kind==='p968'?['IT\'S A 968!','DO YOU KNOW WHAT THIS IS?!','A PORSCHE?! REALLY?!','ONLY 4,000 MADE!']:null;
   setTimeout(()=>popup(quips?pick(quips):pick(['HEY!','MY PAINT!','ARE YOU KIDDING?!','WHO THREW THAT?','I JUST WASHED IT!','UNBELIEVABLE!','KIDS!','WTF YO!','BEAT HIS ASS!','THAT WAS A LEASE!','MY KID IS IN HERE!','I KNOW WHERE YOU LIVE!','NOT THE PAINT PROTECTION!','I\'M CALLING YOUR MOM!']),c.group.position.clone().setY(2.4),'say'),420);
 }
 function onMiss(a,gy){
