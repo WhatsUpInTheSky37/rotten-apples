@@ -78,6 +78,13 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .spot .bl{font:500 14px/1.35 var(--f-body);color:var(--muted)}
 .spot .ft{display:flex;justify-content:space-between;gap:8px;margin-top:4px;font:600 15px/1 var(--f-num);letter-spacing:.04em;color:var(--gold);font-variant-numeric:tabular-nums}
 .spot .ft i{font-style:normal;color:var(--dim)}
+.daycard{display:flex;flex-direction:column;min-width:0}
+.daycard.has-jump .spot{border-bottom-left-radius:0;border-bottom-right-radius:0;border-bottom-color:transparent}
+.jump{display:flex;flex-wrap:wrap;align-items:center;gap:6px;padding:0 16px 14px;border:1px solid var(--line);border-top:0;border-radius:0 0 10px 10px;background:var(--panel-2)}
+.jump span{font:700 11px/1 var(--f-body);letter-spacing:.14em;text-transform:uppercase;color:var(--dim);margin-right:2px}
+.jump button{all:unset;box-sizing:border-box;cursor:pointer;padding:7px 10px;border-radius:7px;font:700 13px/1 var(--f-body);background:rgba(255,255,255,.08);border:1px solid var(--line);color:var(--ink)}
+.jump button:hover{background:var(--apple);border-color:var(--apple)}
+.jump button:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .spot.locked{cursor:not-allowed;opacity:.55}
 .spot.locked:hover{transform:none;background:var(--panel-2);border-color:var(--line)}
 .spot.locked .ft{color:var(--muted)}
@@ -1364,15 +1371,19 @@ function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0
 
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
-function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
+function renderSpots(){const box=$('#spots');box.innerHTML='';DAYS.forEach((D,i)=>{const wrap=document.createElement('div');wrap.className='daycard';const b=document.createElement('button');const un=unlocked(i);b.className='spot'+(un?'':' locked');b.type='button';b.id='spot-'+dayKey(i);
   const bs=best[dayKey(i)]||0;const diff=`Cars ×${D.speedMul.toFixed(2)} speed · traffic ×${(1/D.spawnMul).toFixed(2)}<br>Goals ${SPOT_GOALS.map((_,k)=>goalFor(i,k).toLocaleString()).join(' / ')}`;
   b.innerHTML=`<span class="no">Day ${i+1} · garden, treehouse, overpass, rooftop, home</span><span class="nm">Day ${i+1}</span><span class="bl">${D.blurb}<br>${diff}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${(()=>{const pr=store.get('prog',null);return pr&&pr.day===i&&pr.furthest>0&&!cleared[dayKey(i)]?`Continue at ${SPOT_NAMES[Math.min(3,pr.furthest|0)]} ${Math.min(3,pr.furthest|0)+1}/4`:(cleared[dayKey(i)]?'Cleared':'Hit the driver at home to clear');})()}</i>`:`<span>Locked</span><i>Clear Day ${i} first</i>`}</span>`;
-  if(un)b.addEventListener('click',()=>startDay(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
+  if(un)b.addEventListener('click',()=>startDay(i));else b.setAttribute('aria-disabled','true');wrap.appendChild(b);
+  // A day you've already cleared: start at any of its four spots.
+  if(un&&cleared[dayKey(i)]){wrap.classList.add('has-jump');const j=document.createElement('div');j.className='jump';j.innerHTML='<span>Start at</span>';
+    SPOT_NAMES.forEach((nm,k)=>{const sb=document.createElement('button');sb.type='button';sb.id=`jump-${dayKey(i)}-${k}`;sb.textContent=nm;sb.title=`Day ${i+1}, ${nm}`;sb.addEventListener('click',()=>startRound(i,k,{fresh:true}));j.appendChild(sb);});wrap.appendChild(j);}
+  box.appendChild(wrap);});}
 function show(id){for(const s of['#title','#menu','#pause','#over','#options','#sdcard'])$(s).hidden=s!==id;}
 // Pick a day from the list: continue where you left off if this day has progress saved, otherwise start at the garden.
-function startDay(i){const pr=store.get('prog',null);if(pr&&pr.day===i&&pr.furthest>0&&Array.isArray(pr.scores)){dayIdx=i;dayScores=pr.scores.slice(0,4);furthestStep=Math.min(3,pr.furthest|0);startRound(i,furthestStep);}else startRound(i,0,{fresh:true});}
+function startDay(i){if(cleared[dayKey(i)]){startRound(i,0,{fresh:true});return;}const pr=store.get('prog',null);if(pr&&pr.day===i&&pr.furthest>0&&Array.isArray(pr.scores)){dayIdx=i;dayScores=pr.scores.slice(0,4);furthestStep=Math.min(3,pr.furthest|0);startRound(i,furthestStep);}else startRound(i,0,{fresh:true});}
 function startRound(i,step,opts){
-  initAudio();endShowdown();if(step==null)step=spotStep;if(i!==dayIdx||(step===0&&opts&&opts.fresh)){dayScores=[0,0,0,0];furthestStep=0;}dayIdx=i;DAY=DAYS[i];spotStep=step;furthestStep=Math.max(furthestStep,step);pendingShowdown=false;saveProg();
+  initAudio();endShowdown();if(step==null)step=spotStep;if(i!==dayIdx||(opts&&opts.fresh)){dayScores=[0,0,0,0];furthestStep=0;}dayIdx=i;DAY=DAYS[i];spotStep=step;furthestStep=Math.max(furthestStep,step);if(cleared[dayKey(i)])furthestStep=SPOT_ORDER.length-1;pendingShowdown=false;saveProg();
   const spot=SPOT_ORDER[step];if(spot!==levelIdx)loadLevel(spot);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   $('#spotname').textContent=`Day ${i+1} · ${step+1}/4 ${LV.name}`;
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').textContent=HINTS[prefAmmo()];$('#hint').style.opacity=1;
@@ -1385,7 +1396,7 @@ function toMenu(){endShowdown();state='menu';show('#menu');$('#hud').hidden=true
 function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
 let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 let pausedFrom='play';
-function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep;if(!ok){b.disabled=true;b.title='Hit the goal at the spot before it first';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
+function renderPauseSpots(){const box=$('#pauseSpots');box.innerHTML='';SPOT_NAMES.forEach((nm,i)=>{const b=document.createElement('button');b.className='btn'+(i===spotStep?' cur':'');b.type='button';b.textContent=nm;const ok=i<=furthestStep;if(!ok){b.disabled=true;b.title='Hit the goal at the spot before it first (any spot opens once the day is cleared)';}else if(i!==spotStep)b.addEventListener('click',()=>startRound(dayIdx,i));box.appendChild(b);});}
 function pause(){if(state!=='play'&&state!=='showdown')return;pausedFrom=state;state='paused';charging=false;pointerDown=false;const sd=pausedFrom==='showdown';$('#pauseAmmoRow').hidden=sd;$('#pauseSpotsRow').hidden=sd;if(!sd)renderPauseSpots();show('#pause');}
 function resume(){if(state!=='paused')return;state=pausedFrom;show(null);}
 function endRound(){
@@ -1403,7 +1414,7 @@ function endRound(){
   if(!passed){note.className='note bad';note.textContent=`Goal here is ${goal.toLocaleString()}. You were ${(goal-score).toLocaleString()} short. Throw again: windshields, long shots, streaks and the special cars pay the most.`;}
   else if(lastSpot)note.textContent=`Day total ${total.toLocaleString()}${isBest?', a new best':''}. Uh oh: someone just pulled into your driveway, and there is an apple on their windshield.`;
   else note.textContent=`Day total ${total.toLocaleString()}. ${SPOT_ORDER.length-1-spotStep} spot${SPOT_ORDER.length-1-spotStep===1?'':'s'} to go. Throw again to replay this one.`;
-  const nb=$('#nextBtn');nb.textContent=lastSpot?'Go home':'Next spot';nb.hidden=!passed;
+  const nb=$('#nextBtn');nb.textContent=lastSpot?'Go home':'Next spot';nb.hidden=!(passed||(cleared[key]&&!lastSpot));// on a cleared day you can always move on (home still needs the goal)
   if(passed&&!lastSpot){furthestStep=Math.max(furthestStep,spotStep+1);saveProg();}
   show('#over');(passed?nb:$('#againBtn')).focus();
 }
