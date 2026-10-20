@@ -204,7 +204,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
     <ul class="keys">
       <li><b>Aim</b>mouse or finger</li>
       <li><b>Hold, release</b>throw</li>
-      <li><b>E</b>apples or eggs</li>
+      <li><b>E</b>apples, eggs or corn</li>
       <li><b>P</b>pause</li>
     </ul>
     <p class="fine">Only a windshield hit makes a driver swerve. The grey Cybertruck passes twice a round and pays 2,300. Cop cars cost you 400. And only in here: throwing anything at a real car can kill someone.</p>
@@ -325,7 +325,11 @@ const glowTex=()=>cached('glow',()=>canvasTex(128,128,(g,w,h)=>{const gr=g.creat
 const appleSkinTex=()=>cached('askin',()=>canvasTex(256,128,(g,w,h)=>{g.fillStyle='#b8261a';g.fillRect(0,0,w,h);for(let i=0;i<260;i++){g.strokeStyle=`rgba(${rnd(200,255)|0},${rnd(80,180)|0},${rnd(20,60)|0},${rnd(.08,.3)})`;g.lineWidth=rnd(1,4);const x=Math.random()*w;g.beginPath();g.moveTo(x,0);g.bezierCurveTo(x+rnd(-8,8),h*.4,x+rnd(-8,8),h*.7,x,h);g.stroke();}blobs(g,w,h,6,10,30,()=>`rgba(90,70,20,${rnd(.25,.5)})`);speckle(g,w,h,500,200,255,.4,1.2);}));
 function splatTex(kind){return cached('splat'+kind,()=>canvasTex(256,256,(g,w,h)=>{
   const cx=128,cy=128;
-  if(kind==='egg'){
+  if(kind==='corn'){
+    g.fillStyle='rgba(240,214,120,.35)';for(let i=0;i<6;i++){g.beginPath();g.ellipse(cx+rnd(-40,40),cy+rnd(-40,40),rnd(14,30),rnd(8,18),Math.random()*3,0,6.3);g.fill();}
+    for(let i=0;i<70;i++){const a=Math.random()*6.3,r=Math.pow(Math.random(),.7)*110;g.save();g.translate(cx+Math.cos(a)*r,cy+Math.sin(a)*r);g.rotate(Math.random()*6.3);const gr=g.createRadialGradient(-2,-2,1,0,0,7);gr.addColorStop(0,'#fff1a8');gr.addColorStop(.6,'#f2c230');gr.addColorStop(1,'#c98f12');g.fillStyle=gr;g.beginPath();g.ellipse(0,0,rnd(4,6.5),rnd(3.5,5),0,0,6.3);g.fill();g.restore();}
+    g.fillStyle='rgba(126,150,62,.85)';for(let i=0;i<4;i++){g.save();g.translate(cx+rnd(-70,70),cy+rnd(-70,70));g.rotate(Math.random()*6.3);g.beginPath();g.moveTo(0,0);g.quadraticCurveTo(rnd(10,20),-6,rnd(30,44),rnd(-3,3));g.quadraticCurveTo(rnd(10,20),6,0,0);g.fill();g.restore();}
+  }else if(kind==='egg'){
     g.fillStyle='rgba(250,246,226,.78)';for(let i=0;i<14;i++){g.beginPath();g.ellipse(cx+rnd(-50,50),cy+rnd(-50,50),rnd(18,46),rnd(12,34),Math.random()*3,0,6.3);g.fill();}
     for(let i=0;i<12;i++){g.beginPath();const a=Math.random()*6.3,r=rnd(60,115);g.ellipse(cx+Math.cos(a)*r,cy+Math.sin(a)*r,rnd(3,9),rnd(3,7),a,0,6.3);g.fill();}
     const gr=g.createRadialGradient(cx-8,cy-8,2,cx,cy,34);gr.addColorStop(0,'#ffd764');gr.addColorStop(.7,'#f2a30f');gr.addColorStop(1,'#d88a05');g.fillStyle=gr;g.beginPath();g.ellipse(cx,cy,34,29,.4,0,6.3);g.fill();
@@ -403,7 +407,7 @@ const M={
 };
 const blobMat=new THREE.MeshBasicMaterial({map:blobShadowTex(),transparent:true,depthWrite:false,opacity:.75,color:0x000000});
 blobMat.color.set(0xffffff);
-const splatMats={apple:new THREE.MeshStandardMaterial({map:splatTex('apple'),transparent:true,depthWrite:false,roughness:.35,polygonOffset:true,polygonOffsetFactor:-4}),egg:new THREE.MeshStandardMaterial({map:splatTex('egg'),transparent:true,depthWrite:false,roughness:.2,polygonOffset:true,polygonOffsetFactor:-4})};
+const splatMats={corn:new THREE.MeshStandardMaterial({map:splatTex('corn'),transparent:true,depthWrite:false,roughness:.4,polygonOffset:true,polygonOffsetFactor:-4}),apple:new THREE.MeshStandardMaterial({map:splatTex('apple'),transparent:true,depthWrite:false,roughness:.35,polygonOffset:true,polygonOffsetFactor:-4}),egg:new THREE.MeshStandardMaterial({map:splatTex('egg'),transparent:true,depthWrite:false,roughness:.2,polygonOffset:true,polygonOffsetFactor:-4})};
 const DECAL_GEO=new THREE.PlaneGeometry(1,1);
 const paintCache={};
 function paint(hex){return paintCache[hex]||(paintCache[hex]=new THREE.MeshPhysicalMaterial({color:C(hex),metalness:.5,roughness:.32,clearcoat:.7,clearcoatRoughness:.12,envMapIntensity:1.25}));}
@@ -822,11 +826,18 @@ const EGG_MAT=new THREE.MeshStandardMaterial({color:C('#efe4cf'),roughness:.55})
 function makeApple(){const g=new THREE.Group();const a=new THREE.Mesh(APPLE_GEO,APPLE_MAT);a.castShadow=true;g.add(a);const st=new THREE.Mesh(new THREE.CylinderGeometry(.003,.004,.03,5),std('stem',{color:C('#4a3220'),roughness:.9}));st.position.y=.05;st.rotation.z=.25;g.add(st);
   const lf=new THREE.Mesh(new THREE.SphereGeometry(.018,8,6),std('appleleaf',{color:C('#4f7a22'),roughness:.7}));lf.scale.set(1,.15,.5);lf.position.set(.016,.058,0);lf.rotation.z=-.4;g.add(lf);return g;}
 function makeEgg(){const e=new THREE.Mesh(EGG_GEO,EGG_MAT);e.castShadow=true;const g=new THREE.Group();g.add(e);return g;}
-const held=new THREE.Group();const heldApple=makeApple(),heldEgg=makeEgg();held.add(heldApple,heldEgg);heldApple.scale.setScalar(1.25);heldEgg.scale.setScalar(1.25);camera.add(held);held.visible=false;
+const cornTex=()=>cached('cornk',()=>canvasTex(128,256,(g,w,h)=>{g.fillStyle='#b8860f';g.fillRect(0,0,w,h);const cw=w/10,ch=h/26;for(let r=0;r<26;r++)for(let c=0;c<10;c++){const x=c*cw+(r%2)*cw*.5,y=r*ch;const gr=g.createRadialGradient(x+cw*.35,y+ch*.3,1,x+cw*.5,y+ch*.5,cw*.6);const miss=Math.random()<.04;gr.addColorStop(0,miss?'#8a6a1a':'#fff3b0');gr.addColorStop(.55,miss?'#6d5214':'#f3c63a');gr.addColorStop(1,'#c99412');g.fillStyle=gr;g.beginPath();g.ellipse(x+cw*.5,y+ch*.5,cw*.45,ch*.46,0,0,6.3);g.fill();}}));
+const CORN_GEO=(()=>{const g=new THREE.CylinderGeometry(.021,.027,.19,16,10);const p=g.attributes.position,v=new V3();for(let i=0;i<p.count;i++){v.fromBufferAttribute(p,i);const y=v.y/.095;const k=y>.7?1-Math.pow((y-.7)/.3,2)*.55:1;v.x*=k;v.z*=k;p.setXYZ(i,v.x,v.y,v.z);}g.computeVertexNormals();return g;})();
+const CORN_MAT=new THREE.MeshStandardMaterial({map:cornTex(),roughness:.5});
+const HUSK_MAT=new THREE.MeshStandardMaterial({color:C('#8aa04a'),roughness:.8,side:THREE.DoubleSide});
+function makeCorn(){const g=new THREE.Group();const c=new THREE.Mesh(CORN_GEO,CORN_MAT);c.castShadow=true;g.add(c);
+  for(let i=0;i<3;i++){const hk=new THREE.Mesh(new THREE.SphereGeometry(.03,8,6,0,1.6,0,Math.PI),HUSK_MAT);hk.scale.set(.75,2.3,.75);hk.position.y=-.07;hk.rotation.y=i*2.1;g.add(hk);}
+  const st=new THREE.Mesh(new THREE.CylinderGeometry(.009,.011,.03,6),std('cornstem',{color:C('#9b8a52'),roughness:.9}));st.position.y=-.11;g.add(st);return g;}
+const held=new THREE.Group();const heldApple=makeApple(),heldEgg=makeEgg(),heldCorn=makeCorn();held.add(heldApple,heldEgg,heldCorn);heldApple.scale.setScalar(1.25);heldEgg.scale.setScalar(1.25);heldCorn.scale.setScalar(1.15);heldCorn.rotation.set(.5,0,-.9);heldCorn.position.set(.02,.03,0);heldCorn.visible=false;camera.add(held);held.visible=false;
 const heldShadowFix=()=>{held.traverse(o=>{if(o.isMesh)o.castShadow=false;});};heldShadowFix();
 const DOT_GEO=new THREE.SphereGeometry(.05,8,6);const dots=new THREE.InstancedMesh(DOT_GEO,new THREE.MeshBasicMaterial({color:0xffffff,transparent:true,opacity:.65,depthWrite:false}),30);dots.count=0;dots.frustumCulled=false;
 const PART_GEO=new THREE.IcosahedronGeometry(.035,0);
-const partMats={flesh:std('flesh',{color:C('#efdca0'),roughness:.6}),skin:std('pskin',{color:C('#a8261a'),roughness:.5}),yolk:std('yolk',{color:C('#f6b21c'),roughness:.3}),shell:std('shell',{color:C('#f3ead6'),roughness:.6}),white:std('eggwhite',{color:C('#fbfaf2'),roughness:.15,transparent:true,opacity:.8})};
+const partMats={kernel:std('kernel',{color:C('#f2c230'),roughness:.4}),husk:std('huskbit',{color:C('#8aa04a'),roughness:.8}),flesh:std('flesh',{color:C('#efdca0'),roughness:.6}),skin:std('pskin',{color:C('#a8261a'),roughness:.5}),yolk:std('yolk',{color:C('#f6b21c'),roughness:.3}),shell:std('shell',{color:C('#f3ead6'),roughness:.6}),white:std('eggwhite',{color:C('#fbfaf2'),roughness:.15,transparent:true,opacity:.8})};
 
 /* ---------------- audio ---------------- */
 let AC=null,master=null,noiseBuf=null,ambientNode=null;let muted=store.get('muted',false);
@@ -894,7 +905,7 @@ function loadLevel(i){
 }
 const SHARED=new Set();
 function isShared(g){return SHARED.has(g);}
-[APPLE_GEO,EGG_GEO,DECAL_GEO,TIRE_GEO,RIM_GEO,UBOX,BLOB_GEO,DOT_GEO,PART_GEO,TRUNK_GEO,CONE_GEO,...BLOBS].forEach(g=>SHARED.add(g));
+[APPLE_GEO,EGG_GEO,CORN_GEO,DECAL_GEO,TIRE_GEO,RIM_GEO,UBOX,BLOB_GEO,DOT_GEO,PART_GEO,TRUNK_GEO,CONE_GEO,...BLOBS].forEach(g=>SHARED.add(g));
 function resetWorld(){for(const c of world.cars)scene.remove(c.group);for(const a of world.apples)scene.remove(a.mesh);for(const s of world.splats)scene.remove(s);for(const p of world.parts)scene.remove(p.m);for(const p of world.pops)p.el.remove();
   world.cars=[];world.apples=[];world.splats=[];world.parts=[];world.pops=[];}
 function chooseType(){const t=LV.types;let tot=0;for(const k in t)tot+=t[k];let r=Math.random()*tot;for(const k in t){r-=t[k];if(r<=0)return k;}return 'sedan';}
@@ -966,10 +977,11 @@ function updateCrashed(c,dt){
 /* ---------------- throwing ---------------- */
 function aimDir(origin){camera.updateMatrixWorld();raycaster.setFromCamera({x:aim.nx,y:aim.ny},camera);const p=raycaster.ray.origin.clone().addScaledVector(raycaster.ray.direction,40);return p.sub(origin).normalize();}
 function throwOrigin(){camera.updateMatrixWorld();return camera.localToWorld(new V3(.24,-.16,-.55));}
-function throwSpeed(){return 9+27*power;}
+// Corn is heavier: it leaves the hand about 15% slower.
+function throwSpeed(){return (9+27*power)*(ammo==='corn'?.85:1);}
 function doThrow(){
   if(!(state==='play'||(state==='showdown'&&SD.apples>0&&SD.phase>=2))||reload>0)return;const o=throwOrigin();const v=aimDir(o).multiplyScalar(throwSpeed());
-  const m=ammo==='apple'?makeApple():makeEgg();m.position.copy(o);scene.add(m);
+  const m=ammo==='corn'?makeCorn():ammo==='egg'?makeEgg():makeApple();m.position.copy(o);scene.add(m);
   world.apples.push({mesh:m,pos:o,vel:v,spin:new V3(rnd(-14,14),rnd(-14,14),rnd(-14,14)),t:0,type:ammo});
   throws++;reload=.42;SFX.throw();shake=Math.max(shake,.12);power=0;
   if(state==='showdown'){SD.apples--;$('#sdApples').textContent=SD.apples;}
@@ -995,7 +1007,7 @@ function decalOnCar(c,lp,type){const T=c.T,hw=T.W/2;const pos=new V3(),n=new V3(
   else{n.set(0,1,0);let y;if(lp.x<=T.rf&&lp.x>=T.rr)y=T.open?T.belt+.08:T.roof+.06;else if(lp.x>=T.cf){y=hoodTop(T,lp.x)+.075;if(T.hoodF!=null){const dx=T.L/2-T.cf,dy=T.hood-T.hoodF;n.set(dy,dx,0).normalize();}}else if(lp.x<=T.cr)y=T.trunk+.075;else{const dx=T.rr-T.cr,dy=T.roof-T.belt;n.set(-dy,dx,0).normalize();y=lerp(T.roof,T.belt,clamp((T.rr-lp.x)/dx,0,1))+.03;}pos.set(lp.x,y,clamp(lp.z,-hw*.8,hw*.8));}
   pos.addScaledVector(n,.012);const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.position.copy(pos);m.quaternion.setFromUnitVectors(new V3(0,0,1),n);m.rotateZ(Math.random()*6.28);const s=rnd(.6,.85);m.scale.set(s,s,1);c.group.add(m);}
 function groundSplat(p,type,gy){const m=new THREE.Mesh(DECAL_GEO,splatMats[type]);m.rotation.x=-Math.PI/2;m.rotation.z=Math.random()*6.3;m.position.set(p.x,gy+.025,p.z);const s=rnd(.7,1.05);m.scale.set(s,s,1);m.receiveShadow=true;scene.add(m);world.splats.push(m);if(world.splats.length>40){scene.remove(world.splats.shift());}}
-function burst(p,type,base){const mats=type==='egg'?[partMats.yolk,partMats.shell,partMats.white,partMats.white]:[partMats.flesh,partMats.flesh,partMats.skin];
+function burst(p,type,base){const mats=type==='corn'?[partMats.kernel,partMats.kernel,partMats.kernel,partMats.husk]:type==='egg'?[partMats.yolk,partMats.shell,partMats.white,partMats.white]:[partMats.flesh,partMats.flesh,partMats.skin];
   for(let i=0;i<16;i++){const m=new THREE.Mesh(PART_GEO,pick(mats));m.position.copy(p);const s=rnd(.5,1.4);m.scale.setScalar(s);scene.add(m);const v=new V3(rnd(-1,1),rnd(.4,1.6),rnd(-1,1)).multiplyScalar(rnd(1.5,4.5));if(base)v.addScaledVector(base,.6);world.parts.push({m,v,life:rnd(.8,1.4),spin:rnd(-10,10)});}}
 function updateApples(dt){
   const sub=3,h=dt/sub;
@@ -1022,10 +1034,11 @@ function onHit(c,lp,a){
   // Distance pays: 7 points a metre, plus a long-shot bonus past 45m and a sniper bonus past 70m.
   let base=100+Math.round(dist*7)+Math.round(c.speed*3);if(ws)base+=150;if(c.sports||c.kind==='camaro')base+=150;if(dist>70)base+=300;else if(dist>45)base+=150;
   let pts=Math.round(base*mult);if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
-  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':'WINDSHIELD!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
+  if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED!');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
   if(combo>1)SFX.ding(combo);
-  // Only a windshield hit makes the driver swerve; anything else just rattles them.
-  if(ws){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
+  // A windshield hit makes the driver swerve. A corn cob is heavy enough to do it anywhere on the body; apples and eggs elsewhere just rattle them.
+  if(a.type==='corn')SFX.thunk(vol*1.4);
+  if(ws||a.type==='corn'){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
   if(Math.random()<.55)setTimeout(()=>SFX.honk(vol,Math.random()<.5?1:2),500);
   const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:null;
   setTimeout(()=>popup(quips?pick(quips):pick(['HEY!','MY PAINT!','ARE YOU KIDDING?!','WHO THREW THAT?','I JUST WASHED IT!','UNBELIEVABLE!','KIDS!','WTF YO!','BEAT HIS ASS!','THAT WAS A LEASE!','MY KID IS IN HERE!','I KNOW WHERE YOU LIVE!','NOT THE PAINT PROTECTION!','I\'M CALLING YOUR MOM!']),c.group.position.clone().setY(2.4),'say'),420);
@@ -1176,7 +1189,9 @@ function updateHUD(force){
   if(force||hudCache.t!==t){const el=$('#time');el.textContent=t;el.classList.toggle('low',t<=10&&state==='play');hudCache.t=t;}
   const mult=Math.min(4,1+.5*Math.max(0,combo-1));const ct=combo>1?`x${mult.toFixed(1).replace('.0','')} streak · ${combo}`:'No streak';if(force||hudCache.ct!==ct){const el=$('#combo');el.textContent=ct;el.classList.toggle('hot',combo>1);hudCache.ct=ct;}
 }
-function setAmmo(a){ammo=a;$('#optAmmo').textContent=$('#pauseAmmo').textContent=a==='apple'?'Apples':'Eggs';heldApple.visible=a==='apple';heldEgg.visible=a==='egg';}
+const AMMO=['apple','egg','corn'],AMMO_NAME={apple:'Apples',egg:'Eggs',corn:'Corn'};
+function nextAmmo(){return AMMO[(AMMO.indexOf(ammo)+1)%AMMO.length];}
+function setAmmo(a){ammo=a;$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';}
 function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
@@ -1228,14 +1243,14 @@ const release=()=>{if(!pointerDown)return;pointerDown=false;if(charging){chargin
 window.addEventListener('pointerup',release);window.addEventListener('pointercancel',()=>{pointerDown=false;charging=false;});
 let spaceDown=false;
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
-  if(k==='e'&&state==='play')setAmmo(ammo==='apple'?'egg':'apple');
+  if(k==='e'&&state==='play')setAmmo(nextAmmo());
   else if(k==='m')setMute(!muted);
   else if(k==='p'||k==='escape'){if(state==='play'||state==='showdown')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
   else if((k==='enter'||k===' ')&&state==='menu'&&!$('#title').hidden){e.preventDefault();initAudio();toMenu();}
   else if(k===' '&&state==='play'){e.preventDefault();if(!spaceDown){spaceDown=true;pointerDown=true;if(reload<=0){charging=true;power=0;}}}});
 window.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;release();}});
 $('#menuHudBtn').addEventListener('click',pause);
-$('#pauseAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
+$('#pauseAmmo').addEventListener('click',()=>setAmmo(nextAmmo()));
 $('#pauseSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
 $('#resumeBtn').addEventListener('click',resume);
 $('#quitBtn').addEventListener('click',toMenu);
@@ -1247,7 +1262,7 @@ $('#title').addEventListener('click',e=>{if(e.target.closest('button'))return;in
 $('#titleSound').addEventListener('click',e=>{e.stopPropagation();initAudio();setMute(!muted);});
 $('#optBtn').addEventListener('click',e=>{e.stopPropagation();openOptions('#title');});
 $('#optSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
-$('#optAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
+$('#optAmmo').addEventListener('click',()=>setAmmo(nextAmmo()));
 $('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);for(const k of Object.keys(cleared))delete cleared[k];store.set('cleared',cleared);store.set('prog',null);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
 $('#optClose').addEventListener('click',()=>show(optFrom));
 $('#backBtn').addEventListener('click',toTitle);
