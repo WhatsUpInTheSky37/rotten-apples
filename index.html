@@ -153,6 +153,11 @@ input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .goal{font:700 15px/1 var(--f-num);letter-spacing:.06em;padding:4px 9px;border-radius:6px;background:rgba(0,0,0,.42);color:var(--ink);font-variant-numeric:tabular-nums;white-space:nowrap}
 .goal.met{background:var(--leaf);color:#14200a}
 .timer .num.low{color:var(--bad);animation:pulse .6s infinite alternate}
+.timer .num.tpop{animation:tickpop .35s ease-out}
+@keyframes tickpop{0%{transform:scale(1.35)}100%{transform:scale(1)}}
+#countdown{position:fixed;left:50%;top:42%;transform:translate(-50%,-50%);pointer-events:none;font:700 clamp(90px,22vw,200px)/1 var(--f-num);color:#fff;opacity:0;text-shadow:0 6px 30px rgba(0,0,0,.45);font-variant-numeric:tabular-nums}
+#countdown.show{animation:cdown .95s ease-out}
+@keyframes cdown{0%{opacity:0;transform:translate(-50%,-50%) scale(1.25)}15%{opacity:.42}100%{opacity:0;transform:translate(-50%,-50%) scale(.9)}}
 @keyframes pulse{to{transform:scale(1.08)}}
 .hud-btns{display:flex;gap:8px;pointer-events:auto}
 .hbtn{all:unset;box-sizing:border-box;cursor:pointer;height:40px;min-width:40px;padding:0 12px;border-radius:9px;display:flex;align-items:center;justify-content:center;gap:6px;
@@ -201,7 +206,7 @@ input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 .pop.bad{color:var(--bad)}
 .pop.say{font:700 18px/1 var(--f-body);color:#1a1a1a;background:#fff;padding:6px 10px;border-radius:12px;text-shadow:none}
 .pop.small{font-size:20px;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){#banner.show{animation-duration:1.4s}.timer .num.low{animation:none}.start{animation:none}}
+@media (prefers-reduced-motion:reduce){#banner.show{animation-duration:1.4s}.timer .num.low{animation:none}.timer .num.tpop{animation:none}.start{animation:none}}
 </style>
 </head>
 <body>
@@ -210,6 +215,7 @@ input.tin:focus-visible{outline:2px solid var(--gold);outline-offset:1px}
 <div class="vignette"></div>
 <div id="pops"></div>
 <div id="banner"></div>
+<div id="countdown" aria-hidden="true"></div>
 <div id="fade"></div>
 <div id="cross" hidden></div>
 
@@ -1017,7 +1023,13 @@ const SFX={
   // a car going past: soft rumble that sweeps across the stereo field
   whoosh(v=1,pos){const p=panOf(pos),d=1.7,t=now();const n=nz(d,brownBuf),b=filt('lowpass',260,.7);b.frequency.setValueAtTime(260,t);b.frequency.linearRampToValueAtTime(950,t+d*.45);b.frequency.linearRampToValueAtTime(240,t+d);
     const s=swell(.16*v,d*.45,d*.55,p-.35,.08);n.connect(b).connect(s.g);if(s.p)s.p.pan.linearRampToValueAtTime(clamp(p+.5,-1,1),t+d);},
-  honk(){},tick(){},
+  honk(){},
+  // countdown: a soft wooden clock tick each second for the last 10 (n = seconds left); a double tick-tock for the
+  // last three; n = 0 rings a low, gentle bell for time's up
+  tick(n){const t=now();if(n<=0){bell(262,t,.07,0,3.2,.55);bell(392,t+.06,.035,0,2.6,.55);return;}
+    const k=(10-n)/9,vol=.06+.08*k;
+    const knock=(t0,f,v)=>{const c=nz(.04,noiseBuf,t0),bp=filt('bandpass',f,7);c.connect(bp).connect(out(v,.001,.045,{t0,wet:.18}));const o=osc('sine',f*.55);o.frequency.setValueAtTime(f*.55,t0);o.frequency.exponentialRampToValueAtTime(f*.42,t0+.05);o.connect(out(v*.6,.002,.05,{t0,wet:.12}));o.start(t0);o.stop(t0+.08);};
+    knock(t,1900+160*k,vol);if(n<=3)knock(t+.16,1350,vol*.8);},
   bird(){AMB.songbird();},
 };
 for(const k in SFX){const f=SFX[k];SFX[k]=(...a)=>{if(!AC)return;try{f(...a);}catch(e){}};}
@@ -1575,7 +1587,10 @@ function frame(t){
   if(play){elapsed+=dt;timeLeft-=dt;reload=Math.max(0,reload-dt);
     if(pointerDown&&!charging&&reload<=0){charging=true;power=0;}
     if(charging)power=Math.min(1,power+dt/1.0);
-    if(timeLeft<=0&&overT<0){overT=1.3;charging=false;timeLeft=0;}
+    // last 10 seconds: a tick each second, a pop on the timer, and a big faint number for the final five
+    if(timeLeft<=10&&timeLeft>0&&Math.ceil(timeLeft)!==lastTick){lastTick=Math.ceil(timeLeft);SFX.tick(lastTick);const tn=$('#time');tn.classList.remove('tpop');void tn.offsetWidth;tn.classList.add('tpop');
+      if(lastTick<=5){const cd=$('#countdown');cd.textContent=lastTick;cd.classList.remove('show');void cd.offsetWidth;cd.classList.add('show');}}
+    if(timeLeft<=0&&overT<0){overT=1.3;charging=false;timeLeft=0;lastTick=0;SFX.tick(0);}
     updateHUD();}
   if(state==='showdown'){reload=Math.max(0,reload-dt);const can=SD.apples>0&&SD.phase>=2;if(pointerDown&&!charging&&reload<=0&&can){charging=true;power=0;}if(charging)power=Math.min(1,power+dt/1.0);updateShowdown(dt);}
   if(overT>0){overT-=dt;if(overT<=0)endRound();}
