@@ -7,7 +7,7 @@
 <meta name="claude:viewport-fit-sides" content="cover">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Luckiest+Guy&family=Archivo+Black&family=Barlow:wght@500;600;700&family=Barlow+Condensed:wght@600;700&display=swap">
 <style>
 /* Layout: full-bleed first-person WebGL street; HUD pinned to the corners; menus sit in a left-anchored panel over the live scene. Single dark look by design. */
 :root{
@@ -28,20 +28,44 @@ button{font:inherit;color:inherit}
 button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 
 /* screens */
-.screen{position:fixed;inset:0;display:flex;align-items:center;overflow-y:auto;
+.screen{position:fixed;inset:0;display:flex;align-items:flex-start;justify-content:center;overflow-y:auto;-webkit-overflow-scrolling:touch;
   padding-left:max(16px,env(safe-area-inset-left,0px));padding-right:max(16px,env(safe-area-inset-right,0px));
   padding-block:max(20px,env(safe-area-inset-top,0px)) max(20px,env(safe-area-inset-bottom,0px));
-  background:linear-gradient(90deg,rgba(8,12,7,.9) 0%,rgba(8,12,7,.66) 46%,rgba(8,12,7,.1) 100%)}
-.screen.center{justify-content:center;background:rgba(8,12,7,.62)}
-.menu-inner{width:min(640px,100%);display:flex;flex-direction:column;gap:18px;margin-left:clamp(0px,4vw,64px)}
+  background:rgba(8,12,7,.62)}
+/* children centre with margin:auto, so when content is taller than the viewport it scrolls from the top instead of clipping */
+.screen>*{margin:auto}
+.menu-inner{width:min(640px,100%);display:flex;flex-direction:column;gap:16px}
+.mhead{display:flex;align-items:center;gap:14px}
+.mhead .h2{margin:0;font:400 clamp(24px,6vw,38px)/1 var(--f-display);color:var(--ink)}
 .eyebrow{margin:0;font:700 12px/1 var(--f-body);letter-spacing:.18em;text-transform:uppercase;color:var(--leaf)}
-.logo{margin:0;font:400 clamp(52px,10vw,104px)/.86 var(--f-display);letter-spacing:-.02em;text-wrap:balance;color:var(--ink)}
-.logo span{color:var(--apple);display:block}
+/* title screen */
+.screen.title{background:linear-gradient(180deg,rgba(8,12,7,.3) 0%,rgba(8,12,7,.05) 35%,rgba(8,12,7,.1) 65%,rgba(8,12,7,.6) 100%);cursor:pointer}
+.title-inner{width:100%;min-height:100%;display:flex;flex-direction:column;align-items:center;gap:22px;padding-top:max(3vh,10px)}
+.title-inner .bottom{margin-top:auto;display:flex;flex-direction:column;align-items:center;gap:18px;padding-bottom:max(2vh,8px)}
+.logo{margin:0;display:flex;flex-direction:column;align-items:center;font:400 clamp(54px,min(23vw,18vh),160px)/.92 "Luckiest Guy","Archivo Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:.02em;text-align:center}
+.logo span{display:block;position:relative;paint-order:stroke fill;-webkit-text-stroke:.07em #14180f;text-shadow:0 .07em 0 #14180f,0 .16em .35em rgba(0,0,0,.45)}
+.logo .rot{color:#a6da3c;transform:rotate(-3deg)}
+.logo .app{color:#e43a2a;transform:rotate(2deg);margin-top:-.06em}
+.logo .worm{position:absolute;left:12%;top:-24%;width:.5em;height:.5em;pointer-events:none}
+.start{all:unset;box-sizing:border-box;cursor:pointer;font:400 clamp(26px,7vw,46px)/1 "Luckiest Guy","Archivo Black",Impact,sans-serif;text-transform:uppercase;letter-spacing:.04em;color:#fff;
+  paint-order:stroke fill;-webkit-text-stroke:.08em #1e3b0c;text-shadow:0 .06em 0 #1e3b0c;padding:.55em 1.1em;border-radius:.9em;
+  background:linear-gradient(180deg,#b0e05a 0%,#7fbd34 45%,#5a9a22 100%);border:.1em solid #2c5112;box-shadow:0 .22em 0 #27460f,0 .5em 1em rgba(0,0,0,.45);animation:beat 2.2s ease-in-out infinite}
+.start:active{transform:translateY(.12em);box-shadow:0 .1em 0 #27460f,0 .3em .6em rgba(0,0,0,.4)}
+.start:focus-visible{outline:3px solid var(--gold);outline-offset:4px}
+@keyframes beat{0%,100%{scale:1}50%{scale:1.035}}
+.trow{display:flex;gap:14px;flex-wrap:wrap;justify-content:center}
+.tbtn{all:unset;box-sizing:border-box;cursor:pointer;display:inline-flex;align-items:center;gap:10px;padding:13px 22px;border-radius:14px;background:rgba(22,24,20,.86);border:1px solid rgba(255,255,255,.22);box-shadow:0 4px 0 rgba(0,0,0,.45);font:700 16px/1 var(--f-body);color:#fff;min-width:150px;justify-content:center}
+.tbtn:hover{background:rgba(40,44,38,.9)}
+.tbtn:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
+.tbtn svg{width:20px;height:20px;fill:currentColor;flex:none}
+/* options */
+.orow{display:flex;align-items:center;justify-content:space-between;gap:12px;font:600 16px/1.2 var(--f-body)}
+.orow .btn{min-width:110px;text-align:center}
 .lede{margin:0;max-width:52ch;font:500 17px/1.5 var(--f-body);color:var(--muted)}
 .spots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
 @media (max-width:560px){.spots{grid-template-columns:1fr}}
 .spot{all:unset;box-sizing:border-box;display:flex;flex-direction:column;gap:6px;padding:14px 16px;border-radius:10px;
-  background:var(--panel-2);border:1px solid var(--line);cursor:pointer;min-width:0;transition:background .15s,border-color .15s,transform .15s}
+  background:rgba(13,19,11,.7);border:1px solid var(--line);cursor:pointer;min-width:0;transition:background .15s,border-color .15s,transform .15s}
 .spot:hover{background:rgba(255,255,255,.1);border-color:rgba(255,255,255,.3);transform:translateY(-1px)}
 .spot:focus-visible{outline:2px solid var(--gold);outline-offset:2px}
 .spot .no{font:700 11px/1 var(--f-body);letter-spacing:.16em;text-transform:uppercase;color:var(--dim)}
@@ -66,7 +90,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .note{margin:0;font:600 15px/1.4 var(--f-body);color:var(--leaf)}
 .note.bad{color:var(--muted)}
 .row{display:flex;flex-wrap:wrap;gap:10px}
-.btn{all:unset;box-sizing:border-box;cursor:pointer;padding:12px 18px;border-radius:9px;font:700 15px/1 var(--f-body);letter-spacing:.02em;background:var(--panel-2);border:1px solid var(--line)}
+.btn{all:unset;box-sizing:border-box;cursor:pointer;white-space:nowrap;padding:12px 18px;border-radius:9px;font:700 15px/1 var(--f-body);letter-spacing:.02em;background:var(--panel-2);border:1px solid var(--line)}
 .btn:hover{background:rgba(255,255,255,.12)}
 .btn.primary{background:var(--apple);border-color:var(--apple)}
 .btn.primary:hover{background:#e95339}
@@ -110,7 +134,7 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
 .pop.bad{color:var(--bad)}
 .pop.say{font:700 18px/1 var(--f-body);color:#1a1a1a;background:#fff;padding:6px 10px;border-radius:12px;text-shadow:none}
 .pop.small{font-size:20px;color:var(--muted)}
-@media (prefers-reduced-motion:reduce){#banner.show{animation-duration:1.4s}.timer .num.low{animation:none}}
+@media (prefers-reduced-motion:reduce){#banner.show{animation-duration:1.4s}.timer .num.low{animation:none}.start{animation:none}}
 </style>
 </head>
 <body>
@@ -142,11 +166,25 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
   <div id="power"><div id="powerFill"></div></div>
 </div>
 
-<div id="menu" class="screen">
+<div id="title" class="screen title">
+  <div class="title-inner">
+    <h1 class="logo"><span class="rot">Rotten<svg class="worm" viewBox="0 0 60 60" aria-hidden="true"><path d="M8 50C8 30 26 30 26 44s18 14 18-4S52 14 50 10" fill="none" stroke="#14180f" stroke-width="13" stroke-linecap="round"/><path d="M8 50C8 30 26 30 26 44s18 14 18-4S52 14 50 10" fill="none" stroke="#f6a7a4" stroke-width="8" stroke-linecap="round"/><circle cx="50" cy="10" r="8" fill="#f9b9b6" stroke="#14180f" stroke-width="2.5"/><circle cx="47.5" cy="8.5" r="1.8" fill="#14180f"/><circle cx="53" cy="8.5" r="1.8" fill="#14180f"/></svg></span><span class="app">Apples</span></h1>
+    <div class="bottom">
+      <button class="start" id="startBtn">Tap to start</button>
+      <div class="trow">
+        <button class="tbtn" id="optBtn"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M19.4 13a7.6 7.6 0 0 0 0-2l2-1.6-2-3.4-2.4.8a7.5 7.5 0 0 0-1.7-1L14.9 3h-3.8l-.4 2.6a7.5 7.5 0 0 0-1.7 1l-2.4-.8-2 3.4L6.6 11a7.6 7.6 0 0 0 0 2l-2 1.6 2 3.4 2.4-.8a7.5 7.5 0 0 0 1.7 1l.4 2.8h3.8l.4-2.8a7.5 7.5 0 0 0 1.7-1l2.4.8 2-3.4ZM12 15.5a3.5 3.5 0 1 1 0-7 3.5 3.5 0 0 1 0 7Z"/></svg>Options</button>
+        <button class="tbtn" id="titleSound"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 9v6h4l5 4V5L7 9H3Zm13.5 3a4.5 4.5 0 0 0-2.5-4v8a4.5 4.5 0 0 0 2.5-4Zm-2.5-8.8v2.1a7 7 0 0 1 0 13.4v2.1a9 9 0 0 0 0-17.6Z"/></svg><span id="titleSoundTxt">Sound on</span></button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div id="menu" class="screen" hidden>
   <div class="menu-inner">
-    <p class="eyebrow">Maple Court · Saturday morning</p>
-    <h1 class="logo">Rotten <span>Apples</span></h1>
-    <p class="lede">The tree dropped a whole basket of windfalls. Hide in the garden, watch for headlights down the street, then wind up and lead your throw until a driver swerves off the road.</p>
+    <div class="mhead">
+      <button class="btn" id="backBtn" title="Back to title">&#8249; Back</button>
+      <div><p class="eyebrow">Pick your spot</p><h2 class="h2">Where are you throwing from?</h2></div>
+    </div>
     <div id="spots" class="spots"></div>
     <ul class="keys">
       <li><b>Aim</b>mouse or finger</li>
@@ -155,6 +193,22 @@ button:focus-visible{outline:2px solid var(--gold);outline-offset:3px}
       <li><b>P</b>pause</li>
     </ul>
     <p class="fine">Only a windshield hit makes a driver swerve. The grey Cybertruck passes twice a round and pays 2,300. Cop cars cost you 400. And only in here: throwing anything at a real car can kill someone.</p>
+  </div>
+</div>
+
+<div id="options" class="screen center" hidden>
+  <div class="card">
+    <h2>Options</h2>
+    <div class="orow"><span>Sound</span><button class="btn" id="optSound">On</button></div>
+    <div class="orow"><span>Ammo</span><button class="btn" id="optAmmo">Apples</button></div>
+    <div class="orow"><span>Best scores</span><button class="btn" id="optReset">Reset</button></div>
+    <ul class="keys">
+      <li><b>Hold, release</b>throw harder the longer you hold</li>
+      <li><b>Windshield</b>makes the driver swerve</li>
+      <li><b>Streaks</b>multiply your points</li>
+      <li><b>Cop cars</b>cost 400</li>
+    </ul>
+    <div class="row"><button class="btn primary" id="optClose">Done</button></div>
   </div>
 </div>
 
@@ -916,8 +970,8 @@ function updateHUD(force){
   if(force||hudCache.t!==t){const el=$('#time');el.textContent=t;el.classList.toggle('low',t<=10&&state==='play');hudCache.t=t;}
   const mult=Math.min(4,1+.5*Math.max(0,combo-1));const ct=combo>1?`x${mult.toFixed(1).replace('.0','')} streak · ${combo}`:'No streak';if(force||hudCache.ct!==ct){const el=$('#combo');el.textContent=ct;el.classList.toggle('hot',combo>1);hudCache.ct=ct;}
 }
-function setAmmo(a){ammo=a;$('#ammoTxt').textContent=a==='apple'?'Apples':'Eggs';$('#ammoDot').className='ammo-dot'+(a==='egg'?' egg':'');heldApple.visible=a==='apple';heldEgg.visible=a==='egg';}
-function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#muteBtn').textContent=m?'Sound off':'Sound on';}
+function setAmmo(a){ammo=a;$('#ammoTxt').textContent=a==='apple'?'Apples':'Eggs';$('#optAmmo').textContent=a==='apple'?'Apples':'Eggs';$('#ammoDot').className='ammo-dot'+(a==='egg'?' egg':'');heldApple.visible=a==='apple';heldEgg.visible=a==='egg';}
+function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#muteBtn').textContent=m?'Sound off':'Sound on';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||(best[LEVELS[i-1].id]||0)>=LEVELS[i-1].target;}
@@ -925,7 +979,7 @@ function renderSpots(){const box=$('#spots');box.innerHTML='';LEVELS.forEach((L,
   const bs=best[L.id]||0;
   b.innerHTML=`<span class="no">Spot ${i+1} · ${L.where}</span><span class="nm">${L.name}</span><span class="bl">${L.blurb}</span><span class="ft">${un?`<span>Best ${bs.toLocaleString()}</span><i>${L.target?`Unlock next at ${L.target.toLocaleString()}`:'Final spot'}</i>`:`<span>Locked</span><i>Score ${LEVELS[i-1].target.toLocaleString()} at ${LEVELS[i-1].name}</i>`}</span>`;
   if(un)b.addEventListener('click',()=>startRound(i));else b.setAttribute('aria-disabled','true');box.appendChild(b);});}
-function show(id){for(const s of['#menu','#pause','#over'])$(s).hidden=s!==id;}
+function show(id){for(const s of['#title','#menu','#pause','#over','#options'])$(s).hidden=s!==id;}
 function startRound(i){
   initAudio();if(i!==levelIdx)loadLevel(i);else{resetWorld();prepopulate();setAmbient(LV.ambient);}
   score=0;combo=0;bestCombo=0;hits=0;throws=0;offroads=0;timeLeft=ROUND;reload=0;charging=false;power=0;elapsed=0;overT=-1;hintShown=true;$('#hint').style.opacity=1;
@@ -933,6 +987,8 @@ function startRound(i){
   look.yaw=LV.yaw;look.pitch=LV.pitch;state='play';show(null);$('#hud').hidden=false;crossEl.hidden=false;held.visible=true;setAmmo(ammo);updateHUD(true);store.set('last',i);
 }
 function toMenu(){state='menu';show('#menu');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;renderSpots();}
+function toTitle(){state='menu';show('#title');$('#hud').hidden=true;crossEl.hidden=true;held.visible=false;charging=false;}
+let optFrom='#title';function openOptions(from){optFrom=from;show('#options');$('#optClose').focus();}
 function pause(){if(state!=='play')return;state='paused';charging=false;show('#pause');}
 function resume(){if(state!=='paused')return;state='play';show(null);}
 function endRound(){
@@ -957,7 +1013,8 @@ let spaceDown=false;
 window.addEventListener('keydown',e=>{const k=e.key.toLowerCase();
   if(k==='e'&&state==='play')setAmmo(ammo==='apple'?'egg':'apple');
   else if(k==='m')setMute(!muted);
-  else if(k==='p'||k==='escape'){if(state==='play')pause();else if(state==='paused')resume();}
+  else if(k==='p'||k==='escape'){if(state==='play')pause();else if(state==='paused')resume();else if(k==='escape'&&!$('#options').hidden)show(optFrom);else if(k==='escape'&&!$('#menu').hidden)toTitle();}
+  else if((k==='enter'||k===' ')&&state==='menu'&&!$('#title').hidden){e.preventDefault();initAudio();toMenu();}
   else if(k===' '&&state==='play'){e.preventDefault();if(!spaceDown){spaceDown=true;pointerDown=true;if(reload<=0){charging=true;power=0;}}}});
 window.addEventListener('keyup',e=>{if(e.key===' '){spaceDown=false;release();}});
 $('#ammoBtn').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
@@ -968,6 +1025,15 @@ $('#quitBtn').addEventListener('click',toMenu);
 $('#againBtn').addEventListener('click',()=>startRound(levelIdx));
 $('#nextBtn').addEventListener('click',()=>startRound(levelIdx+1));
 $('#menuBtn').addEventListener('click',toMenu);
+$('#startBtn').addEventListener('click',e=>{e.stopPropagation();initAudio();toMenu();});
+$('#title').addEventListener('click',e=>{if(e.target.closest('button'))return;initAudio();toMenu();});
+$('#titleSound').addEventListener('click',e=>{e.stopPropagation();initAudio();setMute(!muted);});
+$('#optBtn').addEventListener('click',e=>{e.stopPropagation();openOptions('#title');});
+$('#optSound').addEventListener('click',()=>{initAudio();setMute(!muted);});
+$('#optAmmo').addEventListener('click',()=>setAmmo(ammo==='apple'?'egg':'apple'));
+$('#optReset').addEventListener('click',()=>{if(!confirm('Reset all best scores?'))return;for(const k of Object.keys(best))delete best[k];store.set('best',best);store.set('last',0);$('#optReset').textContent='Done';setTimeout(()=>$('#optReset').textContent='Reset',1200);});
+$('#optClose').addEventListener('click',()=>show(optFrom));
+$('#backBtn').addEventListener('click',toTitle);
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});
 window.addEventListener('blur',pause);
 function resize(){const w=innerWidth,h=innerHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.fov=w<h?74:62;camera.updateProjectionMatrix();}
@@ -1011,7 +1077,7 @@ function frame(t){
 setMute(muted);setAmmo('apple');
 const startIdx=clamp(store.get('last',0)|0,0,LEVELS.length-1);
 loadLevel(unlocked(startIdx)?startIdx:0);
-renderSpots();show('#menu');
+renderSpots();show('#title');
 requestAnimationFrame(frame);
 })();
 </script>
