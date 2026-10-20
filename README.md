@@ -7,9 +7,7 @@ A first-person browser game: hide in your front garden, watch the cars come down
 ## How to play
 - Tap the title screen to start, then pick a day. **Options** has sound, ammo, and a best-score reset
 - **Aim** with the mouse or your finger
-- **Mouse:** hold, then release to throw. Holding longer throws harder
-- **Touch:** swipe toward a car and let go. A longer, faster swipe throws harder. The view stays still while you aim; drag with two fingers to look around
-- **Aim help:** a gold target shows where the throw will land, and a marker shows where it will hit a car (green on the windshield, amber anywhere else). It accounts for the car moving. Turn it off in Options
+- **Hold, then release** to throw. Holding longer throws harder, and the dotted arc shows where it's headed
 - **E** cycles apples → eggs → corn. **P** pauses. **M** mutes
 - Only a **direct windshield hit** sends a car off the road. A hit anywhere else just rattles the driver
 - **Corn** is heavy: it throws about 15% slower, but every hit is worth 50% more points
