@@ -21,7 +21,6 @@
 }
 html,body{height:100%;margin:0;overflow:hidden;background:#0c120a;color:var(--ink);font-family:var(--f-body);-webkit-user-select:none;user-select:none}
 [hidden]{display:none!important}
-[hidden]{display:none!important}
 #game{position:fixed;inset:0}
 #game canvas{display:block;width:100%;height:100%;touch-action:none;cursor:none}
 .vignette{position:fixed;inset:0;pointer-events:none;background:radial-gradient(120% 95% at 50% 45%,transparent 55%,rgba(0,0,0,.42) 100%)}
@@ -560,7 +559,7 @@ function buildRoof(sc,R,L){
 }
 
 /* ---------------- sky & lighting ---------------- */
-function skyMat(cfg){return new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,
+function skyMat(cfg,forEnv){return new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:false,defines:forEnv?{ENV_PASS:1}:{},
   uniforms:{top:{value:new THREE.Color(cfg.top)},horizon:{value:new THREE.Color(cfg.horizon)},bottom:{value:new THREE.Color(cfg.bottom)},sunDir:{value:new V3(...cfg.sun).normalize()},sunColor:{value:new THREE.Color(cfg.sunColor)},cloud:{value:cfg.cloud}},
   vertexShader:`varying vec3 vDir;void main(){vDir=position;vec4 p=projectionMatrix*modelViewMatrix*vec4(position,1.);gl_Position=p;gl_Position.z=p.w*.99999;}`,
   fragmentShader:`uniform vec3 top,horizon,bottom,sunDir,sunColor;uniform float cloud;varying vec3 vDir;
@@ -571,7 +570,12 @@ function skyMat(cfg){return new THREE.ShaderMaterial({side:THREE.BackSide,depthW
     float s=max(dot(d,normalize(sunDir)),0.);
     if(h>0.){vec2 uv=d.xz/(h+.07)*1.4;float n=fbm(uv*.8+vec2(3.,7.));float cl=smoothstep(.62-cloud*.22,.92,n)*smoothstep(0.,.1,h);vec3 cc=mix(vec3(1.,.99,.97),horizon,.3)*(.85+.25*fbm(uv*2.))+sunColor*pow(s,5.)*.45;c=mix(c,cc,cl*.9);}
     c+=sunColor*(pow(s,1200.)*8.+pow(s,30.)*.28+pow(s,4.)*.1);
-    gl_FragColor=vec4(c,1.);}`});}
+    gl_FragColor=vec4(c,1.);
+    #ifdef ENV_PASS
+    // The PMREM target is RGBE-encoded: raw alpha=1 would decode as a 2^127 exponent and blow up the environment map.
+    gl_FragColor=linearToOutputTexel(gl_FragColor);
+    #endif
+  }`});}
 
 /* ---------------- cars ---------------- */
 const CAR_TYPES={
@@ -672,7 +676,7 @@ function loadLevel(i){
   if(scene){scene.traverse(o=>{if(o.geometry&&!o.geometry.userData.keep&&o.isMesh&&!isShared(o.geometry))o.geometry.dispose();});}
   scene=new THREE.Scene();scene.fog=new THREE.Fog(C(LV.fog[0]),LV.fog[1],LV.fog[2]);
   sky=new THREE.Mesh(new THREE.SphereGeometry(1000,32,16),skyMat(LV.sky));sky.frustumCulled=false;sky.renderOrder=-10;scene.add(sky);
-  const envScene=new THREE.Scene();envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),skyMat(LV.sky)));
+  const envScene=new THREE.Scene();envScene.add(new THREE.Mesh(new THREE.SphereGeometry(50,32,16),skyMat(LV.sky,true)));
   const gnd=new THREE.Mesh(new THREE.PlaneGeometry(200,200).rotateX(-Math.PI/2),new THREE.MeshBasicMaterial({color:new THREE.Color(LV.sky.bottom)}));gnd.position.y=-2;envScene.add(gnd);
   const pm=new THREE.PMREMGenerator(renderer);scene.environment=pm.fromScene(envScene,.03).texture;pm.dispose();
   const hemi=new THREE.HemisphereLight(C(LV.hemi[0]),C(LV.hemi[1]),LV.hemi[2]);scene.add(hemi);
