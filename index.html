@@ -883,26 +883,95 @@ const PART_GEO=new THREE.IcosahedronGeometry(.035,0);
 const partMats={kernel:std('kernel',{color:C('#f2c230'),roughness:.4}),husk:std('huskbit',{color:C('#8aa04a'),roughness:.8}),flesh:std('flesh',{color:C('#efdca0'),roughness:.6}),skin:std('pskin',{color:C('#a8261a'),roughness:.5}),yolk:std('yolk',{color:C('#f6b21c'),roughness:.3}),shell:std('shell',{color:C('#f3ead6'),roughness:.6}),white:std('eggwhite',{color:C('#fbfaf2'),roughness:.15,transparent:true,opacity:.8})};
 
 /* ---------------- audio ---------------- */
-let AC=null,master=null,noiseBuf=null,ambientNode=null;let muted=store.get('muted',false);
-function initAudio(){if(AC){if(AC.state==='suspended')AC.resume();return;}try{AC=new(window.AudioContext||window.webkitAudioContext)();master=AC.createGain();master.gain.value=muted?0:.8;master.connect(AC.destination);noiseBuf=AC.createBuffer(1,AC.sampleRate*2,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<d.length;i++)d[i]=Math.random()*2-1;}catch(e){AC=null;}}
+// Soft, close, ASMR-style sound. Everything is synthesized, goes through a gentle compressor and a small room reverb,
+// and is panned toward where it happens on screen. No beeps: hits ring a little bell that climbs with your streak,
+// and every spot has its own ambience bed plus small random events (songbirds, wind chimes, crickets, crows, pigeons...).
+let AC=null,master=null,noiseBuf=null,brownBuf=null,verbIn=null;let muted=store.get('muted',false);
+function initAudio(){if(AC){if(AC.state==='suspended')AC.resume();return;}try{AC=new(window.AudioContext||window.webkitAudioContext)();
+  const comp=AC.createDynamicsCompressor();comp.threshold.value=-22;comp.knee.value=18;comp.ratio.value=3;comp.attack.value=.008;comp.release.value=.3;comp.connect(AC.destination);
+  master=AC.createGain();master.gain.value=muted?0:.9;master.connect(comp);
+  const len=AC.sampleRate*2;noiseBuf=AC.createBuffer(1,len,AC.sampleRate);const d=noiseBuf.getChannelData(0);for(let i=0;i<len;i++)d[i]=Math.random()*2-1;
+  brownBuf=AC.createBuffer(1,len,AC.sampleRate);const bd=brownBuf.getChannelData(0);let l=0;for(let i=0;i<len;i++){l=(l+.02*(Math.random()*2-1))/1.02;bd[i]=l*3.5;}
+  const ir=AC.createBuffer(2,Math.floor(AC.sampleRate*2.2),AC.sampleRate);for(let ch=0;ch<2;ch++){const x=ir.getChannelData(ch);for(let i=0;i<x.length;i++)x[i]=(Math.random()*2-1)*Math.pow(1-i/x.length,3.2);}
+  const verb=AC.createConvolver();verb.buffer=ir;verbIn=AC.createGain();verbIn.gain.value=.5;verbIn.connect(verb);verb.connect(master);
+}catch(e){AC=null;}
+  if(AC&&LV)setAmbient();}
 const now=()=>AC.currentTime;
-function nz(dur){const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;s.start(now(),Math.random());s.stop(now()+dur+.05);return s;}
-function envG(peak,a,d,t0=now()){const g=AC.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);g.connect(master);return g;}
+function nz(dur,buf=noiseBuf,t0=now()){const s=AC.createBufferSource();s.buffer=buf;s.loop=true;s.start(t0,Math.random()*1.5);s.stop(t0+dur+.05);return s;}
 function filt(type,f,q=1){const b=AC.createBiquadFilter();b.type=type;b.frequency.value=f;b.Q.value=q;return b;}
 function osc(type,f){const o=AC.createOscillator();o.type=type;o.frequency.value=f;return o;}
+function panNode(p){if(!AC.createStereoPanner)return null;const n=AC.createStereoPanner();n.pan.value=clamp(p,-1,1);return n;}
+function panOf(pos){if(!pos||!camera)return 0;const v=pos.clone().project(camera);return clamp(v.x*.8,-.9,.9);}
+// An envelope gain that feeds the mix dry, plus a send into the reverb.
+function out(peak,a,d,{t0=now(),wet=.15,pan=0}={}){const g=AC.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);
+  let node=g;const p=pan?panNode(pan):null;if(p){g.connect(p);node=p;}node.connect(master);if(wet>0){const w=AC.createGain();w.gain.value=wet;node.connect(w);w.connect(verbIn);}return g;}
+function swell(peak,a,d,pan=0,wet=.2,t0=now()){const g=AC.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(Math.max(.0002,peak),t0+a);g.gain.exponentialRampToValueAtTime(.0001,t0+a+d);
+  let node=g;const p=pan?panNode(pan):null;if(p){g.connect(p);node=p;}node.connect(master);if(wet>0){const w=AC.createGain();w.gain.value=wet;node.connect(w);w.connect(verbIn);}return {g,p};}
+// A small bell: a few sine partials with a soft attack and a long tail.
+function bell(freq,t0,vol,pan=0,dec=1.6,wet=.45){for(const [r,a] of [[1,1],[2.01,.32],[3.0,.12],[4.17,.07],[5.43,.04]]){if(freq*r>15000)continue;const o=osc('sine',freq*r);o.connect(out(vol*a,.005,dec/(r*.55+.45),{t0,wet,pan}));o.start(t0);o.stop(t0+dec+.2);}}
+// A whistled bird note with a pitch glide.
+function tone(f0,f1,t0,dur,vol,pan,wet=.35,type='sine'){const o=osc(type,f0);o.frequency.setValueAtTime(f0,t0);o.frequency.exponentialRampToValueAtTime(f1,t0+dur);o.connect(out(vol,Math.min(.02,dur*.25),dur,{t0,wet,pan}));o.start(t0);o.stop(t0+dur+.05);}
+const PENTA=[0,2,4,7,9,12,14,16,19,21,24];
 const SFX={
-  throw(){if(!AC)return;const n=nz(.3),b=filt('bandpass',500,1.2);b.frequency.exponentialRampToValueAtTime(1900,now()+.22);n.connect(b).connect(envG(.32,.02,.22));},
-  splat(v=1){if(!AC)return;const n=nz(.25),b=filt('lowpass',1500);n.connect(b).connect(envG(.55*v,.004,.2));const n2=nz(.15),b2=filt('bandpass',750,4);n2.connect(b2).connect(envG(.4*v,.01,.12));const o=osc('sine',150);o.frequency.exponentialRampToValueAtTime(48,now()+.16);o.connect(envG(.5*v,.004,.16));o.start();o.stop(now()+.25);},
-  thunk(v=1){if(!AC)return;const o=osc('triangle',230);o.frequency.exponentialRampToValueAtTime(80,now()+.14);o.connect(envG(.5*v,.003,.16));o.start();o.stop(now()+.25);const n=nz(.1),b=filt('bandpass',2600,2);n.connect(b).connect(envG(.25*v,.002,.08));},
-  screech(v=1){if(!AC)return;const d=1.25;const n=nz(d);const b=filt('bandpass',2500,10),b2=filt('bandpass',3400,12);const l=osc('sine',7),lg=AC.createGain();lg.gain.value=320;l.connect(lg);lg.connect(b.frequency);l.start();l.stop(now()+d);const g=AC.createGain();g.gain.setValueAtTime(.0001,now());g.gain.exponentialRampToValueAtTime(.5*v,now()+.05);g.gain.setValueAtTime(.45*v,now()+d*.6);g.gain.exponentialRampToValueAtTime(.0001,now()+d);g.connect(master);n.connect(b).connect(g);n.connect(b2).connect(g);},
-  honk(v=1,times=2){if(!AC)return;for(let k=0;k<times;k++){const t0=now()+k*.42;const g=AC.createGain();g.gain.setValueAtTime(.0001,t0);g.gain.exponentialRampToValueAtTime(.16*v,t0+.02);g.gain.setValueAtTime(.16*v,t0+.28);g.gain.exponentialRampToValueAtTime(.0001,t0+.34);const f=filt('lowpass',2100);f.connect(g);g.connect(master);for(const fr of[370,466]){const o=osc('square',fr);o.connect(f);o.start(t0);o.stop(t0+.36);}}},
-  crunch(v=1){if(!AC)return;const n=nz(.6),b=filt('lowpass',650);n.connect(b).connect(envG(.8*v,.005,.5));for(let i=0;i<5;i++){const t0=now()+rnd(0,.25);const n2=nz(.05),b2=filt('bandpass',rnd(1500,4000),3);n2.connect(b2).connect(envG(.3*v,.002,.05,t0));}},
-  siren(){if(!AC)return;const o=osc('sawtooth',700);const t0=now();for(let i=0;i<4;i++){o.frequency.linearRampToValueAtTime(1300,t0+i*.6+.3);o.frequency.linearRampToValueAtTime(700,t0+i*.6+.6);}const f=filt('lowpass',2400);const g=envG(.12,.05,2.4);o.connect(f).connect(g);o.start();o.stop(t0+2.5);},
-  ding(n){if(!AC)return;const o=osc('triangle',523*Math.pow(2,Math.min(n,12)/12));o.connect(envG(.18,.005,.3));o.start();o.stop(now()+.35);},
-  tick(){if(!AC)return;const o=osc('square',1400);o.connect(envG(.06,.002,.04));o.start();o.stop(now()+.06);},
-  bird(){if(!AC)return;const t0=now();for(let i=0;i<3;i++){const o=osc('sine',2800);const t=t0+i*.13;o.frequency.setValueAtTime(2800+rnd(0,600),t);o.frequency.exponentialRampToValueAtTime(4300+rnd(0,500),t+.05);o.frequency.exponentialRampToValueAtTime(3000,t+.1);o.connect(envG(.035,.01,.08,t));o.start(t);o.stop(t+.12);}},
+  throw(){const t=now();const n=nz(.42),b=filt('bandpass',350,.8);b.frequency.setValueAtTime(350,t);b.frequency.exponentialRampToValueAtTime(1300,t+.17);b.frequency.exponentialRampToValueAtTime(550,t+.38);n.connect(b).connect(out(.15,.05,.32,{wet:.05,pan:.25}));
+    const r=nz(.14),h=filt('highpass',3800,.7);r.connect(h).connect(out(.03,.01,.11,{wet:0,pan:.3}));},
+  splat(v=1,pos){const p=panOf(pos);const n=nz(.32),b=filt('lowpass',850,.7);n.connect(b).connect(out(.22*v,.006,.24,{wet:.12,pan:p}));
+    for(let i=0;i<5;i++){const t0=now()+.01+Math.random()*.14;const c=nz(.03,noiseBuf,t0),bp=filt('bandpass',rnd(1800,4500),6);c.connect(bp).connect(out(.05*v,.002,.03,{t0,wet:.1,pan:p}));}},
+  thunk(v=1,pos){const p=panOf(pos);const o=osc('sine',150);o.frequency.exponentialRampToValueAtTime(70,now()+.12);o.connect(out(.26*v,.004,.14,{wet:.08,pan:p}));o.start();o.stop(now()+.2);},
+  screech(v=1,pos){const p=panOf(pos);const d=.9,t=now();const n=nz(d),b=filt('bandpass',1700,3);b.frequency.setValueAtTime(1900,t);b.frequency.linearRampToValueAtTime(1400,t+d);n.connect(b).connect(swell(.08*v,.08,d-.08,p,.2).g);},
+  crunch(v=1,pos){const p=panOf(pos);const n=nz(.7,brownBuf),b=filt('lowpass',520);n.connect(b).connect(out(.45*v,.01,.55,{wet:.15,pan:p}));
+    for(let i=0;i<8;i++){const t0=now()+rnd(0,.45);const c=nz(.03,noiseBuf,t0),bp=filt('bandpass',rnd(900,2800),4);c.connect(bp).connect(out(.06*v,.002,.04,{t0,wet:.1,pan:p}));}},
+  // a soft, far-off wail rather than a harsh siren
+  siren(){const o=osc('sine',650),t0=now();for(let i=0;i<4;i++){o.frequency.linearRampToValueAtTime(950,t0+i*.7+.35);o.frequency.linearRampToValueAtTime(650,t0+i*.7+.7);}const f=filt('lowpass',1400);o.connect(f).connect(out(.045,.35,2.6,{wet:.55}));o.start();o.stop(t0+3.1);},
+  // hit bling: climbs the pentatonic scale with your streak; windshield or special car adds a little sparkle
+  bling(combo=1,big=false,pos){const p=panOf(pos)*.6,t0=now()+.04,st=PENTA[clamp(combo-1,0,PENTA.length-1)],f=n=>1046.5*Math.pow(2,n/12);bell(f(st),t0,.075,p);
+    if(big){bell(f(st+7),t0+.085,.055,p,1.8);bell(f(st+12),t0+.17,.05,p,2.4);}},
+  ding(n){SFX.bling(n);},
+  chime(){const t0=now();[0,4,7,12,16].forEach((s,i)=>bell(784*Math.pow(2,s/12),t0+i*.12,.06,rnd(-.4,.4),2.6,.6));},
+  // a car going past: soft rumble that sweeps across the stereo field
+  whoosh(v=1,pos){const p=panOf(pos),d=1.7,t=now();const n=nz(d,brownBuf),b=filt('lowpass',260,.7);b.frequency.setValueAtTime(260,t);b.frequency.linearRampToValueAtTime(950,t+d*.45);b.frequency.linearRampToValueAtTime(240,t+d);
+    const s=swell(.16*v,d*.45,d*.55,p-.35,.08);n.connect(b).connect(s.g);if(s.p)s.p.pan.linearRampToValueAtTime(clamp(p+.5,-1,1),t+d);},
+  honk(){},tick(){},
+  bird(){AMB.songbird();},
 };
-function setAmbient(kind){if(!AC)return;if(ambientNode){try{ambientNode.stop();}catch(e){}ambientNode=null;}if(kind==='birds')return;const s=AC.createBufferSource();s.buffer=noiseBuf;s.loop=true;const f=filt('lowpass',kind==='highway'?520:300);const g=AC.createGain();g.gain.value=kind==='highway'?.11:.07;s.connect(f).connect(g).connect(master);s.start();ambientNode=s;}
+for(const k in SFX){const f=SFX[k];SFX[k]=(...a)=>{if(!AC)return;try{f(...a);}catch(e){}};}
+
+// Ambience: a few looping beds (wind, leaves, road rumble, city hum, crickets) plus timed little events per spot.
+const AMB={nodes:[],ev:{},
+  stop(){for(const n of this.nodes){try{n.stop();}catch(e){}}this.nodes=[];this.ev={};},
+  bed(buf,type,f,q,vol,lfoRate=0,lfoDepth=0,pan=0){const s=AC.createBufferSource();s.buffer=buf;s.loop=true;const b=filt(type,f,q);const g=AC.createGain();g.gain.value=vol;s.connect(b).connect(g);
+    let node=g;const p=pan?panNode(pan):null;if(p){g.connect(p);node=p;}node.connect(master);const w=AC.createGain();w.gain.value=.25;node.connect(w);w.connect(verbIn);
+    if(lfoRate){const l=osc('sine',lfoRate),lg=AC.createGain();lg.gain.value=vol*lfoDepth;l.connect(lg);lg.connect(g.gain);l.start();this.nodes.push(l);}
+    s.start(0,Math.random()*1.5);this.nodes.push(s);},
+  crickets(vol,f=4700,pan=0){const o=osc('sine',f),g=AC.createGain();g.gain.value=vol*.5;const am=osc('square',29),ag=AC.createGain();ag.gain.value=vol*.5;am.connect(ag);ag.connect(g.gain);
+    const h=AC.createGain();h.gain.value=.5;const grp=osc('sine',rnd(1.1,1.7)),gg=AC.createGain();gg.gain.value=.5;grp.connect(gg);gg.connect(h.gain);
+    o.connect(g).connect(h);let node=h;const p=panNode(pan);if(p){h.connect(p);node=p;}node.connect(master);const w=AC.createGain();w.gain.value=.3;node.connect(w);w.connect(verbIn);
+    for(const x of[o,am,grp]){x.start();this.nodes.push(x);}},
+  // songbirds: a few different calls, at random spots around you
+  songbird(vol=1){const t=now(),p=rnd(-.85,.85),v=rnd(.018,.045)*vol,sp=Math.floor(Math.random()*5);
+    if(sp===0){tone(4100,3950,t,.32,v,p);tone(3450,3350,t+.4,.38,v*.9,p);}// fee-bee
+    else if(sp===1){let tt=t;const n=4+(Math.random()*4|0);for(let i=0;i<n;i++){const f=rnd(2200,3400),d=rnd(.09,.16);tone(f,f*rnd(.85,1.2),tt,d,v,p);tt+=d+rnd(.03,.07);}}// warble
+    else if(sp===2){const n=10+(Math.random()*8|0);for(let i=0;i<n;i++)tone(6200,4600,t+i*.042,.026,v*.8,p,.3);}// trill
+    else if(sp===3){for(let i=0;i<3+(Math.random()*3|0);i++)tone(3900,1900,t+i*.22,.16,v,p);}// cheer cheer
+    else{for(let i=0;i<2;i++)tone(rnd(2600,3200),rnd(4200,5000),t+i*.16,.07,v*.9,p);}},// chip-chip
+  meadow(){const t=now(),p=rnd(-.8,.8),v=rnd(.02,.04);const notes=[[2600,3300,.22],[3300,2900,.12],[2900,3900,.18],[3900,2400,.35]];let tt=t;for(const [a,b,d] of notes){tone(a,b,tt,d,v,p,.45);tt+=d+.04;}},
+  chimes(){const t=now(),n=3+(Math.random()*4|0),p=rnd(-.6,.6);for(let i=0;i<n;i++)bell(1568*Math.pow(2,pick(PENTA.slice(0,8))/12),t+i*rnd(.15,.5),rnd(.012,.024),p+rnd(-.15,.15),2.8,.6);},
+  gust(f=2600,vol=.03){const d=rnd(2.5,4.5),n=nz(d),b=filt('bandpass',f,.45);b.frequency.setValueAtTime(f*.7,now());b.frequency.linearRampToValueAtTime(f*1.2,now()+d*.5);b.frequency.linearRampToValueAtTime(f*.8,now()+d);n.connect(b).connect(swell(vol,d*.45,d*.55,rnd(-.6,.6),.25).g);},
+  woodpecker(){const t=now(),p=rnd(-.8,.8),n=10+(Math.random()*6|0);for(let i=0;i<n;i++){const t0=t+i*.055;const c=nz(.02,noiseBuf,t0),bp=filt('bandpass',1100,2.5);c.connect(bp).connect(out(.05*(1-i/n*.5),.001,.025,{t0,wet:.45,pan:p}));}},
+  crow(){const t=now(),p=rnd(-.85,.85),n=2+(Math.random()*2|0);for(let i=0;i<n;i++){const t0=t+i*.42;const o=osc('sawtooth',560);o.frequency.setValueAtTime(560,t0);o.frequency.exponentialRampToValueAtTime(430,t0+.3);const b=filt('bandpass',1150,3);o.connect(b).connect(out(.035,.02,.28,{t0,wet:.5,pan:p}));o.start(t0);o.stop(t0+.35);}},
+  pigeon(){const t=now(),p=rnd(-.7,.7),v=rnd(.035,.06);[[.0,.2,430],[.26,.2,450],[.52,.55,410]].forEach(([dt,d,f])=>{const t0=t+dt;const o=osc('sine',f),o2=osc('triangle',f);o.frequency.setValueAtTime(f*.96,t0);o.frequency.linearRampToValueAtTime(f,t0+d*.3);o.frequency.linearRampToValueAtTime(f*.93,t0+d);o2.frequency.value=f;
+      const lp=filt('lowpass',900);o.connect(lp);o2.connect(lp);lp.connect(out(v,.05,d,{t0,wet:.3,pan:p}));for(const x of[o,o2]){x.start(t0);x.stop(t0+d+.1);}});},
+  truck(){const d=rnd(4,6),t=now(),n=nz(d,brownBuf),b=filt('lowpass',180,.7);b.frequency.linearRampToValueAtTime(650,t+d*.5);b.frequency.linearRampToValueAtTime(200,t+d);const s=swell(.16,d*.5,d*.5,-.6,.1);n.connect(b).connect(s.g);if(s.p)s.p.pan.linearRampToValueAtTime(.6,t+d);},
+  churchbell(){const t=now(),p=rnd(-.5,.5),n=2+(Math.random()*2|0);for(let i=0;i<n;i++)bell(311,t+i*2.2,.035,p,4.5,.7);},
+  start(id){this.stop();if(!AC)return;const B=this.bed.bind(this);
+    if(id==='garden'){B(noiseBuf,'lowpass',500,.7,.018,.07,.6);B(noiseBuf,'bandpass',3600,.4,.006,.11,.9,.3);this.ev={songbird:[1.5,5],chimes:[10,22],gust:[7,15]};}
+    else if(id==='tree'){B(noiseBuf,'lowpass',520,.7,.026,.06,.6);B(noiseBuf,'bandpass',3300,.4,.01,.09,.9,-.3);this.crickets(.011,4700,-.4);this.crickets(.008,5100,.45);this.ev={songbird:[2.5,7],meadow:[5,12],woodpecker:[12,26],gust:[5,11]};}
+    else if(id==='bridge'){B(brownBuf,'lowpass',380,.7,.065,.05,.3);B(noiseBuf,'bandpass',1000,.6,.008,.07,.4);B(noiseBuf,'lowpass',600,.7,.015,.08,.7);this.ev={truck:[6,13],crow:[10,22],songbird:[9,18]};}
+    else{B(brownBuf,'lowpass',220,.7,.05,.04,.3);B(noiseBuf,'bandpass',520,.8,.009,.05,.4);this.crickets(.004,4500,.3);this.ev={pigeon:[5,12],gust:[6,14],churchbell:[28,55],songbird:[9,20]};}
+    for(const k in this.ev)this.ev[k]=[...this.ev[k],rnd(1,this.ev[k][0])];},
+  update(dt){if(!AC||muted)return;for(const k in this.ev){const e=this.ev[k];e[2]-=dt;if(e[2]<=0){e[2]=rnd(e[0],e[1]);try{k==='gust'?this.gust(LV.id==='roof'?700:2600,LV.id==='roof'?.05:.03):k==='songbird'?this.songbird(LV.id==='bridge'||LV.id==='roof'?.5:1):this[k]();}catch(err){}}}},
+};
+function setAmbient(){if(!AC||!LV)return;AMB.start(LV.id);}
 function distVol(p){return clamp(28/Math.max(1,p.distanceTo(camera.position)),.12,1);}
 
 /* ---------------- game state ---------------- */
@@ -1071,7 +1140,7 @@ function updateApples(dt){
 }
 function onHit(c,lp,a){
   const wp=a.pos.clone();const vol=distVol(wp);const carVel=c.crashed?c.vel.clone():new V3(Math.cos(c.group.rotation.y),0,-Math.sin(c.group.rotation.y)).multiplyScalar(c.speed);
-  burst(wp,a.type,carVel);decalOnCar(c,lp,a.type);SFX.splat(vol);SFX.thunk(vol);
+  burst(wp,a.type,carVel);decalOnCar(c,lp,a.type);SFX.splat(vol,wp);SFX.thunk(vol,wp);
   if(state!=='play')return;
   if(c.crashed){addScore(25);popup('+25 piling on',wp,'small');return;}
   hits++;
@@ -1083,11 +1152,10 @@ function onHit(c,lp,a){
   // A heavy corn cob dents the car: 50% more points.
   let pts=Math.round(base*mult*(a.type==='corn'?1.5:1));if(SPECIALS[c.kind])pts=SPECIALS[c.kind].pts;addScore(pts);popup('+'+pts+(dist>30?' · '+Math.round(dist)+'m':''),wp,'gold');
   if(c.kind==='cyber')banner('CYBERTRUCK! +'+CYBER_PTS);else if(c.kind==='jeep')banner('WHORES…');else if(c.kind==='iroc')banner('IROCPWR');else if(c.kind==='sublime')banner('SUBLIME!');else if(c.kind==='cavalier')banner('CAVALIER!');else if(c.kind==='p968')banner('PORSCHE 968!');else if(c.kind==='transam')banner('TRANS AM!');else if(dist>70)banner('SNIPER! '+Math.round(dist)+'m');else if(ws)banner(a.type==='egg'?'YOLK ON THE GLASS!':a.type==='corn'?'CRACKED THE GLASS!':'WINDSHIELD!');else if(a.type==='corn')banner('CORNED! x1.5');else if(dist>45)banner('LONG SHOT! '+Math.round(dist)+'m');else if(c.kind==='camaro')banner('CAMARO!');else if(c.sports)banner('SPORTS CAR!');
-  if(combo>1)SFX.ding(combo);
+  SFX.bling(combo,ws||!!SPECIALS[c.kind],wp);
   // Only a direct windshield hit makes the driver swerve off the road, whatever you throw. Anywhere else just rattles them.
   if(a.type==='corn')SFX.thunk(vol*1.4);
   if(ws){crashCar(c);setTimeout(()=>SFX.screech(vol),60);}else{c.spook=1.4;}
-  if(Math.random()<.55)setTimeout(()=>SFX.honk(vol,Math.random()<.5?1:2),500);
   const quips=c.kind==='jeep'?['OMG!','NOT THE HAIR!','WHO DID THAT?!','EWW, APPLE!','RUDE!']:c.kind==='iroc'?['DUDE!','NOT THE IROC!','MY T-TOPS!','BRO?!','THAT\'S A CLASSIC!']:c.kind==='sublime'?['NOT THE CUTLASS!','I WAS JAMMING!','BRO, SANTERIA WAS ON!','MY CUTLASS, MAN!']:c.kind==='cavalier'?['MY CAVALIER!','IT\'S PAID OFF!','MOM\'S GONNA KILL ME!','IT ALREADY HAD DENTS!']:c.kind==='transam'?['NOT THE TRANS AM!','THE T-TOPS ARE OFF, MAN!','I JUST GOT IT DETAILED!','APPLE IN MY LAP!']:c.kind==='p968'?['IT\'S A 968!','DO YOU KNOW WHAT THIS IS?!','A PORSCHE?! REALLY?!','ONLY 4,000 MADE!']:null;
   setTimeout(()=>popup(quips?pick(quips):pick(['HEY!','MY PAINT!','ARE YOU KIDDING?!','WHO THREW THAT?','I JUST WASHED IT!','UNBELIEVABLE!','KIDS!','WTF YO!','BEAT HIS ASS!','THAT WAS A LEASE!','MY KID IS IN HERE!','I KNOW WHERE YOU LIVE!','NOT THE PAINT PROTECTION!','I\'M CALLING YOUR MOM!']),c.group.position.clone().setY(2.4),'say'),420);
 }
@@ -1096,7 +1164,7 @@ function onMiss(a,gy){
   if(state!=='play')return;
   let near=null,nd=1e9;for(const c of world.cars){if(c.crashed)continue;const d=c.group.position.distanceTo(a.pos);if(d<nd){nd=d;near=c;}}
   if(combo>1)popup('Streak lost',a.pos.clone().setY(gy+1),'small');combo=0;
-  if(near&&nd<3.6){popup('So close',a.pos.clone().setY(gy+1.4),'small');near.spook=1.2;if(Math.random()<.6)SFX.honk(distVol(near.group.position),1);}
+  if(near&&nd<3.6){popup('So close',a.pos.clone().setY(gy+1.4),'small');near.spook=1.2;}
 }
 function updateParts(dt){for(const p of world.parts){p.life-=dt;p.v.y-=G*dt;p.m.position.addScaledVector(p.v,dt);p.m.rotation.x+=p.spin*dt;const gy=LV.groundAt(p.m.position.x,p.m.position.z);if(p.m.position.y<gy+.02){p.m.position.y=gy+.02;p.v.multiplyScalar(.3);p.v.y=0;}}
   world.parts=world.parts.filter(p=>{if(p.life<=0)scene.remove(p.m);return p.life>0;});}
@@ -1206,7 +1274,7 @@ function updateShowdown(dt){
     const k=Math.min(1,SD.t/1.5),e=1-Math.pow(1-k,3);const a=SD.p0.clone().lerp(SD.pc,e),b=SD.pc.clone().lerp(SD.p1,e);c.group.position.copy(a.lerp(b,e));
     const ye=k<.8?k/.8:1;const over=k>.8?Math.sin((k-.8)/.2*Math.PI)*.08:0;c.group.rotation.set(0,SD.yaw0+(SD.yaw1-SD.yaw0)*(ye*ye)+over,-.03*Math.sin(k*Math.PI));
     for(const w of c.wheels)w.rotation.z-=12*dt*(1-k)/c.T.wr;c.group.updateMatrixWorld();
-    if(k>=1){SD.phase=2;SD.t=0;c.group.rotation.set(0,SD.yaw1,0);c.group.updateMatrixWorld();if(Math.random()<.7)SFX.honk(1,1);}}
+    if(k>=1){SD.phase=2;SD.t=0;c.group.rotation.set(0,SD.yaw1,0);c.group.updateMatrixWorld();}}
   else if(SD.phase===2){// door opens, out they get
     if(SD.t>.7){const m=makeDriver(SD.v);const side=c.group.localToWorld(new V3(.3,0,c.T.W/2+.7));m.position.set(side.x,0,side.z);scene.add(m);SD.man=m;SD.from=m.position.clone();const cp=new V3(...SD.cam);SD.to=new V3(cp.x,0,cp.z);SD.phase=3;SD.t=0;sdSay(SD_LINES[0]);SD.lineI=1;SD.lineT=0;}}
   else if(SD.phase===3){// shouting, then walking at you
@@ -1230,7 +1298,7 @@ function popup(text,wp,cls){const el=document.createElement('div');el.className=
 function updatePops(dt){const w=innerWidth,h=innerHeight;for(const p of world.pops){p.t+=dt;tmp.copy(p.wp);tmp.y+=p.t*1.4;tmp.project(camera);const x=(tmp.x*.5+.5)*w,y=(-tmp.y*.5+.5)*h;const k=p.t/p.life;const sc=k<.12?.6+k/.12*.5:1.1-Math.min(.1,(k-.12));p.el.style.transform=`translate(${x}px,${y}px) translate(-50%,-50%) scale(${sc})`;p.el.style.opacity=tmp.z>1?0:String(1-Math.max(0,(k-.7)/.3));}
   world.pops=world.pops.filter(p=>{if(p.t>=p.life){p.el.remove();return false;}return true;});}
 let banT=0;function banner(text,cls){bannerEl.textContent=text;bannerEl.className='';void bannerEl.offsetWidth;bannerEl.className='show'+(cls?' '+cls:'');}
-function addScore(n){score+=n;if(state==='play'&&!goalHit&&score>=goal){goalHit=true;setTimeout(()=>{banner('GOAL! NEXT SPOT OPEN');SFX.ding(12);},700);}updateHUD(true);}
+function addScore(n){score+=n;if(state==='play'&&!goalHit&&score>=goal){goalHit=true;setTimeout(()=>{banner('GOAL! NEXT SPOT OPEN');SFX.chime();},700);}updateHUD(true);}
 function renderGoal(){const el=$('#goal');const met=score>=goal;el.classList.toggle('met',met);el.textContent=met?`Goal ${goal.toLocaleString()} met`:`Goal ${goal.toLocaleString()}`;}
 let hudCache={};
 function updateHUD(force){renderGoal();
@@ -1244,7 +1312,7 @@ function nextAmmo(){return AMMO[(AMMO.indexOf(ammo)+1)%AMMO.length];}
 const HINTS={apple:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',egg:'Hold to wind up, release to throw. Hit the windshield to make them swerve.',corn:'Corn is heavy: it flies slower, but every hit is worth 50% more. Hit the windshield to make them swerve.'};
 let hintTimer=0;
 function setAmmo(a){const changed=a!==ammo;ammo=a;if(state==='play'){$('#hint').textContent=HINTS[a];if(changed&&!hintShown){$('#hint').style.opacity=1;clearTimeout(hintTimer);hintTimer=setTimeout(()=>{if(!hintShown)$('#hint').style.opacity=0;},3000);}}$('#optAmmo').textContent=$('#pauseAmmo').textContent=AMMO_NAME[a];heldApple.visible=a==='apple';heldEgg.visible=a==='egg';heldCorn.visible=a==='corn';document.querySelectorAll('.ammo-opt').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.ammo===a)));}
-function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.8;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
+function setMute(m){muted=m;store.set('muted',m);if(master)master.gain.value=m?0:.9;$('#pauseSound').textContent=m?'Off':'On';$('#titleSoundTxt').textContent=m?'Sound off':'Sound on';$('#optSound').textContent=m?'Off':'On';}
 
 /* ---------------- menus ---------------- */
 function unlocked(i){return i===0||!!cleared[dayKey(i-1)];}
@@ -1350,7 +1418,6 @@ function frame(t){
   if(play){elapsed+=dt;timeLeft-=dt;reload=Math.max(0,reload-dt);
     if(pointerDown&&!charging&&reload<=0){charging=true;power=0;}
     if(charging)power=Math.min(1,power+dt/1.0);
-    if(timeLeft<=10&&Math.ceil(timeLeft)!==lastTick){lastTick=Math.ceil(timeLeft);if(lastTick>0)SFX.tick();}
     if(timeLeft<=0&&overT<0){overT=1.3;charging=false;timeLeft=0;}
     updateHUD();}
   if(state==='showdown'){reload=Math.max(0,reload-dt);const can=SD.apples>0&&SD.phase>=2;if(pointerDown&&!charging&&reload<=0&&can){charging=true;power=0;}if(charging)power=Math.min(1,power+dt/1.0);updateShowdown(dt);}
@@ -1361,7 +1428,9 @@ function frame(t){
   else held.visible=false;
   $('#power').classList.toggle('on',(play||state==='showdown')&&charging);if(charging)$('#powerFill').style.width=(power*100).toFixed(1)+'%';
   crossEl.classList.toggle('charging',charging);
-  if(LV.ambient==='birds'&&AC){birdT-=dt;if(birdT<=0){birdT=rnd(3,8);SFX.bird();}}
+  AMB.update(dt);
+  // soft whoosh as each car goes past you
+  if(AC&&!muted)for(const c of world.cars){if(c.crashed)continue;const d=c.group.position.distanceTo(camera.position);if(c.minD==null||d<c.minD)c.minD=d;else if(!c.passed&&c.minD<32&&d>c.minD+1.5){c.passed=true;SFX.whoosh(clamp(14/Math.max(6,c.minD),.25,1)*(LV.id==='bridge'?.55:1),c.group.position);}}
   sky.position.copy(camera.position);
   renderer.render(scene,camera);
 }
