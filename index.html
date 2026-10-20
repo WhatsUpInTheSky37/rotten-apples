@@ -614,9 +614,6 @@ function buildGarden(sc,R,L){
   for(let i=0;i<4;i++){const p=camRel(L,3.1+rnd(-.2,.2),-.4+i*.75,0);const pl=bush(sc,p,.32,[.27,.45,.2]);pl.position.y=.55;pl.scale.set(.32,.45,.32);
     const stake=mesh(new THREE.CylinderGeometry(.015,.015,1.1,5),M.wood());stake.position.set(p.x,.7,p.z);sc.add(stake);
     for(let k=0;k<3;k++){const t=mesh(new THREE.SphereGeometry(.045,10,8),std('tomato',{color:C('#c8301f'),roughness:.35}));t.position.set(p.x+rnd(-.2,.2),rnd(.45,.85),p.z+rnd(-.2,.2));sc.add(t);}}
-  const crate=new THREE.Group();const cb=mesh(new THREE.BoxGeometry(.62,.34,.44),M.wood());cb.position.y=.17;crate.add(cb);
-  for(let i=0;i<9;i++){const a=mesh(APPLE_GEO,APPLE_MAT);a.scale.setScalar(1.1);a.position.set(rnd(-.22,.22),.36+rnd(0,.04),rnd(-.14,.14));a.rotation.set(rnd(0,6),rnd(0,6),0);crate.add(a);}
-  crate.position.copy(camRel(L,2.4,-.85,0));crate.rotation.y=L.yaw+.3;sc.add(crate);
   const gn=new THREE.Group();const gb=mesh(new THREE.CylinderGeometry(.08,.12,.22,10),std('gnb',{color:C('#2f5ea8'),roughness:.6}));gb.position.y=.11;gn.add(gb);const gf=mesh(new THREE.SphereGeometry(.07,12,10),std('gnf',{color:C('#f0c8a8'),roughness:.6}));gf.position.y=.28;gn.add(gf);const gbd=mesh(new THREE.ConeGeometry(.07,.12,10),M.white());gbd.position.set(0,.23,.03);gbd.rotation.x=.4;gn.add(gbd);const gh=mesh(new THREE.ConeGeometry(.08,.22,12),std('gnh',{color:C('#c4281b'),roughness:.6}));gh.position.y=.42;gn.add(gh);
   gn.position.copy(camRel(L,3.4,1.9,0));gn.rotation.y=L.yaw+Math.PI+.5;gn.scale.setScalar(1.4);sc.add(gn);
   L.groundAt=()=>0;
