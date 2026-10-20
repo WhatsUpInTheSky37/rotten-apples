@@ -205,7 +205,9 @@ const ROUND=60, G=9.8;
 const reduceMotion=matchMedia('(prefers-reduced-motion: reduce)').matches;
 
 /* ---------------- renderer ---------------- */
-const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance'});
+// Logarithmic depth: the frustum spans 0.15m to 1600m, and from the high vantage points (overpass, rooftop) a linear depth buffer
+// cannot separate the road from the ground a few centimetres below it at long range, which shows as shimmering far tarmac.
+const renderer=new THREE.WebGLRenderer({antialias:true,powerPreference:'high-performance',logarithmicDepthBuffer:true});
 renderer.setPixelRatio(Math.min(window.devicePixelRatio||1,2));
 renderer.shadowMap.enabled=true; renderer.shadowMap.type=THREE.PCFSoftShadowMap;
 renderer.outputEncoding=THREE.sRGBEncoding;
@@ -445,8 +447,9 @@ const LEVELS=[
   lookS:-22,lookOff:0,lookY:0,speed:[24,32],spawn:[2.2,4.4],leftChance:0,types:{sedan:4,hatch:2,suv:4,pickup:2,sports:2,camaro:2,ram:2},
   sky:{top:'#5a8fd8',horizon:'#dde7ee',bottom:'#7c8566',sun:[.35,.85,.32],sunColor:'#fff6e6',cloud:.65},sunI:2.5,hemi:['#d4e4ff','#606a48',.35],fog:['#d5dfe7',140,950],exposure:.92,night:false,ambient:'highway',build:buildBridge},
  {id:'roof',name:'Rooftop at Dusk',where:'Fourth floor, Pell Street',blurb:'City avenue, headlights on, taxis everywhere. The big leagues.',target:0,
-  cam:[0,16.4,0],road:{p0:[6,-17],u:[.5,.866],width:14,sMin:-430,sMax:60,visMin:-900,lanes:[{off:1.75,dir:1},{off:5.25,dir:1},{off:-1.75,dir:-1},{off:-5.25,dir:-1}],marks:[{o:0,t:'yellow2'},{o:3.5,t:'dash'},{o:-3.5,t:'dash'},{o:6.85,t:'solid'},{o:-6.85,t:'solid'}],asphalt:'#3c3d40'},
-  lookS:-38,lookY:0,speed:[9,15],spawn:[1.9,3.8],leftChance:.2,types:{sedan:4,hatch:2,suv:3,pickup:1,sports:1,camaro:1,ram:1},taxi:.35,
+  // Camera stands at the front parapet directly above the sidewalk, so the avenue fills the view below and runs off into the distance.
+  cam:[2.47,16.4,-1.42],road:{p0:[6,-17],u:[.5,.866],width:14,sMin:-430,sMax:60,visMin:-900,lanes:[{off:1.75,dir:1},{off:5.25,dir:1},{off:-1.75,dir:-1},{off:-5.25,dir:-1}],marks:[{o:0,t:'yellow2'},{o:3.5,t:'dash'},{o:-3.5,t:'dash'},{o:6.85,t:'solid'},{o:-6.85,t:'solid'}],asphalt:'#3c3d40'},
+  lookS:-12,lookOff:-2,lookY:0,speed:[9,15],spawn:[1.9,3.8],leftChance:.2,types:{sedan:4,hatch:2,suv:3,pickup:1,sports:1,camaro:1,ram:1},taxi:.35,
   sky:{top:'#26356a',horizon:'#ef8a5c',bottom:'#3a3340',sun:[-.78,.05,-.6],sunColor:'#ff9a58',cloud:.55},sunI:1.25,hemi:['#8890c4','#3b3036',.4],fog:['#a87a86',60,720],exposure:1.08,night:true,ambient:'city',build:buildRoof},
 ];
 
@@ -547,7 +550,7 @@ function buildRoof(sc,R,L){
   const building=(s,w,d,h,off,st)=>{const geo=new THREE.BoxGeometry(d,h,w);boxUV(geo,d,h,w,24);const m=bmat(st);const b=mesh(geo,[m,m,roofMat,roofMat,m,m]);b.position.copy(R.point(s,off,h/2));b.rotation.y=R.phi;sc.add(b);
     if(Math.random()<.25&&h<45){const wt=new THREE.Group();const tank=mesh(new THREE.CylinderGeometry(1.6,1.6,3,14),M.wood());tank.position.y=3.6;wt.add(tank);const cap=mesh(new THREE.ConeGeometry(1.75,1.2,14),M.darkmetal());cap.position.y=5.7;wt.add(cap);for(const a of[0,1.6,3.2,4.8]){const lg=mesh(new THREE.CylinderGeometry(.06,.06,2.1,5),M.darkmetal());lg.position.set(Math.cos(a)*1.3,1.05,Math.sin(a)*1.3);wt.add(lg);}wt.position.copy(R.point(s+rnd(-w/4,w/4),off+Math.sign(off)*rnd(0,d/4),h));sc.add(wt);}
     else if(Math.random()<.5){const ac=mesh(new THREE.BoxGeometry(2,1.2,1.6),M.metal());ac.position.copy(R.point(s,off,h+.6));ac.rotation.y=R.phi;sc.add(ac);}};
-  const sCam=L.sCam,offCam=L.offCam;const front=offCam-.55;
+  const sCam=L.sCam,offCam=L.offCam;const front=W/2+4.1; // building front flush with the back of the sidewalk; the camera leans out just past the coping
   for(const sd of[1,-1]){let s=-760;while(s<R.sMax+40){const w=rnd(14,30);const far=s<-250;const h=far?rnd(25,90):rnd(10,48);if(!(sd>0&&s+w>sCam-17&&s<sCam+17)){const d=rnd(18,28);building(s+w/2,w,d,h,sd*(11+d/2),pick(['brick','brick','stone','glass']));
         if(Math.random()<.7)building(s+w/2,w,rnd(16,24),h+rnd(15,60),sd*(11+d+rnd(14,30)),pick(['glass','stone','brick']));}
       s+=w+rnd(0,2.5);}}
