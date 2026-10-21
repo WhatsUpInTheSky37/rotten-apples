@@ -53,4 +53,9 @@ At the end of each day the driver you hit pulls into your driveway, gets out and
 ## Top scores
 Set your name (title screen → Top scores, or Options). When you finish all four spots of a day, your day total is posted to a shared board, one board per day, best score per name. Scores are stored in the `rotten_scores` table in Supabase (anyone can read and add; nobody can edit or delete through the public key).
 
+## Development
+It's one HTML file; open it or serve the folder. `npm install && npm test` runs a headless smoke test (hits with every ammo, draw-call budgets on all four spots, both showdown routes and the Day 7 arrest).
+
+Rendering notes: cars are built once per type and merged into a handful of meshes, with every wheel and ground shadow in the scene drawn by one instanced mesh each; static scenery is merged per 150 m of road; splats and flying chunks are instanced. Phones get a 1024 shadow map and start at 1.5x pixel ratio, and the resolution scales down automatically if a second of play averages under ~48 fps.
+
 _Only in the game. Throwing anything at a real car can kill someone._
